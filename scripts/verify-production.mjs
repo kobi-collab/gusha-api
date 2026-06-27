@@ -3,7 +3,7 @@
  * Pre-TestFlight / pre-submit production checks.
  * Usage: node scripts/verify-production.mjs [baseUrl]
  */
-const baseUrl = (process.argv[2] || process.env.EXPO_PUBLIC_API_BASE_URL || "https://lesbianradar-wzqiwps9.manus.space").replace(/\/$/, "");
+const baseUrl = (process.argv[2] || process.env.EXPO_PUBLIC_API_BASE_URL || "https://gusha-api.onrender.com").replace(/\/$/, "");
 
 const checks = [];
 

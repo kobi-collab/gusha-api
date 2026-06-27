@@ -1,4 +1,4 @@
-Gusha v1.0.2 (build 10015) — App Review Notes
+Gusha v1.0.2 (build 10016) — App Review Notes
 ================================================
 
 HOW TO TEST (please use this path, not Demo):
@@ -6,6 +6,8 @@ HOW TO TEST (please use this path, not Demo):
 2. Enter date of birth — must be 18+
 3. Complete onboarding (name, identity, preferences)
 4. You will enter the main app automatically
+
+Note: First launch may take up to 30 seconds while the server wakes up. If you see "Connection Problem", tap "Try Again" once.
 
 RADAR / LOCATION (Guideline 5.1.2):
 - Location is When-In-Use only
@@ -31,4 +33,6 @@ OPTIONAL ACCOUNT LINKING:
 
 Support: support@gusha.app
 Privacy: privacy@gusha.app
-Privacy Policy URL: https://lesbianradar-wzqiwps9.manus.space/privacy
+Privacy Policy URL: https://gusha-api.onrender.com/privacy
+Terms URL: https://gusha-api.onrender.com/terms
+Delete Account URL: https://gusha-api.onrender.com/delete-account
