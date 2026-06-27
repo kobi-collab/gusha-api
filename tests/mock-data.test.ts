@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  MOCK_NEARBY_USERS,
   MOCK_CONVERSATIONS,
   MOCK_MESSAGES,
   getAvatarColor,
@@ -8,11 +7,12 @@ import {
   formatTime,
   DEFAULT_PROFILE,
 } from "../lib/mock-data";
+import { DEMO_NEARBY_USERS, DEMO_CONVERSATIONS } from "../lib/demo-data";
 
 describe("Mock Data", () => {
   it("should have nearby users with required fields", () => {
-    expect(MOCK_NEARBY_USERS.length).toBeGreaterThan(0);
-    for (const user of MOCK_NEARBY_USERS) {
+    expect(DEMO_NEARBY_USERS.length).toBeGreaterThan(0);
+    for (const user of DEMO_NEARBY_USERS) {
       expect(user.id).toBeTruthy();
       expect(user.name).toBeTruthy();
       expect(user.age).toBeGreaterThanOrEqual(18);
@@ -26,13 +26,13 @@ describe("Mock Data", () => {
   });
 
   it("should have unique user IDs", () => {
-    const ids = MOCK_NEARBY_USERS.map((u) => u.id);
+    const ids = DEMO_NEARBY_USERS.map((u) => u.id);
     expect(new Set(ids).size).toBe(ids.length);
   });
 
-  it("should have conversations referencing valid users", () => {
-    const userIds = MOCK_NEARBY_USERS.map((u) => u.id);
-    for (const conv of MOCK_CONVERSATIONS) {
+  it("should have conversations referencing valid demo users", () => {
+    const userIds = DEMO_NEARBY_USERS.map((u) => u.id);
+    for (const conv of DEMO_CONVERSATIONS) {
       expect(userIds).toContain(conv.userId);
       expect(conv.userName).toBeTruthy();
       expect(conv.lastMessage).toBeTruthy();
@@ -115,7 +115,7 @@ describe("DEFAULT_PROFILE", () => {
     expect(DEFAULT_PROFILE.id).toBe("me");
     expect(DEFAULT_PROFILE.name).toBe("");
     expect(DEFAULT_PROFILE.age).toBeGreaterThanOrEqual(18);
-    expect(DEFAULT_PROFILE.isVisible).toBe(true);
+    expect(DEFAULT_PROFILE.isVisible).toBe(false);
     expect(DEFAULT_PROFILE.maxDistance).toBeGreaterThan(0);
     expect(Array.isArray(DEFAULT_PROFILE.interests)).toBe(true);
   });

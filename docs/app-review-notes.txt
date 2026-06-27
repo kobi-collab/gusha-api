@@ -1,0 +1,34 @@
+Gusha v1.0.2 (build 10015) — App Review Notes
+================================================
+
+HOW TO TEST (please use this path, not Demo):
+1. Tap "Get Started" (NOT "Try Demo Mode")
+2. Enter date of birth — must be 18+
+3. Complete onboarding (name, identity, preferences)
+4. You will enter the main app automatically
+
+RADAR / LOCATION (Guideline 5.1.2):
+- Location is When-In-Use only
+- Users appear on the radar ONLY after tapping "Check In" and accepting the consent dialog
+- Users can "Check Out" anytime from the Radar tab
+- The app checks out automatically when sent to background
+
+IN-APP PURCHASES (Guideline 3.1.1):
+- v1.0.2 has NO in-app purchases
+- All features are free in this version
+- No subscription products are active
+
+ACCOUNT DELETION (Guideline 5.1.1v):
+Profile tab → Settings (gear icon) → Delete Account → type DELETE to confirm
+
+BLOCK / REPORT (Guideline 1.2):
+- Open any user profile → Block or Report
+- Community Guidelines and Child Safety Policy are in Settings → Legal
+
+OPTIONAL ACCOUNT LINKING:
+- Not required to use the app
+- Guest profile works without sign-in
+
+Support: support@gusha.app
+Privacy: privacy@gusha.app
+Privacy Policy URL: https://lesbianradar-wzqiwps9.manus.space/privacy

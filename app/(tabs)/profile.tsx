@@ -19,6 +19,8 @@ import { useColors } from "@/hooks/use-colors";
 import { UserProfile, DEFAULT_PROFILE } from "@/lib/mock-data";
 import { loadProfile, saveProfile, clearAllStorage } from "@/lib/storage";
 import { resetAuthState } from "@/components/auth-gate";
+import { startOAuthLogin, isOAuthConfigured } from "@/constants/oauth";
+import { useAuth } from "@/hooks/use-auth";
 import { UserAvatar } from "@/components/user-avatar";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -36,6 +38,7 @@ const INTEREST_OPTIONS = [
 export default function ProfileScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<UserProfile>({ ...DEFAULT_PROFILE });
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -167,6 +170,21 @@ export default function ProfileScreen() {
             )}
           </View>
         </View>
+
+        {!isAuthenticated && isOAuthConfigured() && (
+          <Pressable
+            onPress={() => startOAuthLogin()}
+            style={({ pressed }) => [
+              styles.linkAccountBtn,
+              { backgroundColor: colors.surface, borderColor: colors.primary },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Text style={[styles.linkAccountText, { color: colors.primary }]}>
+              Link Full Account (optional)
+            </Text>
+          </Pressable>
+        )}
 
         {/* Avatar — tappable to go to photo management */}
         <View style={styles.avatarSection}>
@@ -522,5 +540,17 @@ const styles = StyleSheet.create({
   managePhotosBtnText: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  linkAccountBtn: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    paddingVertical: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  linkAccountText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });

@@ -16,16 +16,16 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { loadProfile, saveProfile, clearAllStorage } from "@/lib/storage";
+import { loadProfile, saveProfile, clearAllStorage, signOutSession } from "@/lib/storage";
 import { UserProfile, DEFAULT_PROFILE } from "@/lib/mock-data";
 import { trpc } from "@/lib/trpc";
-import { useSubscription } from "@/hooks/use-subscription";
+import { useProfile } from "@/hooks/use-profile";
 
 export default function SettingsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { user: authUser, logout } = useAuth();
-  const subInfo = useSubscription();
+  const { user: authUser } = useAuth();
+  const { profile: serverProfile, save: saveServerProfile } = useProfile();
   const [profile, setProfile] = useState<UserProfile>({ ...DEFAULT_PROFILE });
   const [pushNotifications, setPushNotifications] = useState(true);
   const [messageNotifications, setMessageNotifications] = useState(true);
@@ -37,6 +37,10 @@ export default function SettingsScreen() {
   const incognitoQuery = trpc.profile.getIncognito.useQuery(undefined, { enabled: !!authUser });
   const toggleIncognitoMutation = trpc.profile.toggleIncognito.useMutation({
     onSuccess: (data: any) => setIncognitoEnabled(data.incognito),
+  });
+  const blockedQuery = trpc.safety.blockedList.useQuery(undefined, { enabled: !!authUser });
+  const unblockMutation = trpc.safety.unblock.useMutation({
+    onSuccess: () => blockedQuery.refetch(),
   });
   useEffect(() => {
     if (incognitoQuery.data) setIncognitoEnabled(incognitoQuery.data.incognito);
@@ -62,13 +66,17 @@ export default function SettingsScreen() {
   };
 
   useEffect(() => {
-    loadProfile().then(setProfile);
-  }, []);
+    if (serverProfile) setProfile(serverProfile);
+    else loadProfile().then(setProfile);
+  }, [serverProfile]);
 
   const updateProfile = async (updates: Partial<UserProfile>) => {
     const updated = { ...profile, ...updates };
     setProfile(updated);
     await saveProfile(updated);
+    if (authUser) {
+      await saveServerProfile(updated);
+    }
   };
 
   return (
@@ -96,15 +104,14 @@ export default function SettingsScreen() {
         </Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.row}>
-            <Text style={[styles.rowLabel, { color: colors.foreground }]}>
-              Profile Visible
-            </Text>
-            <Switch
-              value={profile.isVisible}
-              onValueChange={(val) => updateProfile({ isVisible: val })}
-              trackColor={{ false: colors.border, true: colors.primary }}
-              thumbColor="#fff"
-            />
+            <View style={{ flex: 1, marginRight: 12 }}>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                Radar Visibility
+              </Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                Use Check In on the Radar tab to appear nearby. You are hidden by default.
+              </Text>
+            </View>
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.row}>
@@ -176,23 +183,14 @@ export default function SettingsScreen() {
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.row}>
             <View style={{ flex: 1, marginRight: 12 }}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={[styles.rowLabel, { color: colors.foreground }]}>Incognito Mode</Text>
-                {!subInfo.isPremium && (
-                  <View style={{ backgroundColor: colors.primary + "20", paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 }}>
-                    <Text style={{ color: colors.primary, fontSize: 10, fontWeight: "700" }}>PREMIUM</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>Browse profiles without appearing in their Viewed Me</Text>
+              <Text style={[styles.rowLabel, { color: colors.foreground }]}>Incognito Mode</Text>
+              <Text style={{ color: colors.muted, fontSize: 12, marginTop: 2 }}>
+                Browse profiles without appearing in their Viewed Me. Included free in this version.
+              </Text>
             </View>
             <Switch
               value={incognitoEnabled}
               onValueChange={(val) => {
-                if (val && !subInfo.isPremium) {
-                  router.push("/subscription");
-                  return;
-                }
                 setIncognitoEnabled(val);
                 toggleIncognitoMutation.mutate({ enabled: val });
               }}
@@ -202,36 +200,31 @@ export default function SettingsScreen() {
           </View>
         </View>
 
-        {/* Subscription */}
-        <Text style={[styles.sectionTitle, { color: colors.muted }]}>Subscription</Text>
+        {/* Blocked users */}
+        <Text style={[styles.sectionTitle, { color: colors.muted }]}>Safety</Text>
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-          <View style={styles.row}>
-            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
-              <IconSymbol name="crown.fill" size={20} color={colors.primary} />
-              <Text style={[styles.rowLabel, { color: colors.foreground }]}>Current Plan</Text>
+          {(blockedQuery.data ?? []).length === 0 ? (
+            <View style={styles.row}>
+              <Text style={[styles.rowLabel, { color: colors.muted }]}>No blocked users</Text>
             </View>
-            <Text style={{ color: subInfo.isSubscribed ? colors.primary : colors.muted, fontWeight: "600", fontSize: 15 }}>
-              {subInfo.planLabel}
-            </Text>
-          </View>
-          {subInfo.isSubscribed && subInfo.subscription.expiresAt && (
-            <>
-              <View style={[styles.divider, { backgroundColor: colors.border }]} />
-              <View style={styles.row}>
-                <Text style={[styles.rowLabel, { color: colors.muted }]}>Renews</Text>
-                <Text style={{ color: colors.foreground, fontSize: 14 }}>
-                  {new Date(subInfo.subscription.expiresAt).toLocaleDateString()}
-                </Text>
+          ) : (
+            (blockedQuery.data ?? []).map((blocked: any, index: number) => (
+              <View key={blocked.blockedUserId}>
+                {index > 0 && <View style={[styles.divider, { backgroundColor: colors.border }]} />}
+                <View style={styles.row}>
+                  <Text style={[styles.rowLabel, { color: colors.foreground }]}>
+                    {blocked.displayName || `User ${blocked.blockedUserId}`}
+                  </Text>
+                  <Pressable
+                    onPress={() => unblockMutation.mutate({ userId: blocked.blockedUserId })}
+                    style={({ pressed }) => [pressed && { opacity: 0.7 }]}
+                  >
+                    <Text style={{ color: colors.primary, fontWeight: "600" }}>Unblock</Text>
+                  </Pressable>
+                </View>
               </View>
-            </>
+            ))
           )}
-          <View style={[styles.divider, { backgroundColor: colors.border }]} />
-          <Pressable onPress={() => router.push("/subscription")} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
-            <Text style={[styles.rowLabel, { color: colors.primary }]}>
-              {subInfo.isSubscribed ? "Manage Subscription" : "Upgrade to Plus or Premium"}
-            </Text>
-            <IconSymbol name="chevron.right" size={16} color={colors.primary} />
-          </Pressable>
         </View>
 
         {/* Legal */}
@@ -270,8 +263,12 @@ export default function SettingsScreen() {
               <View style={[styles.divider, { backgroundColor: colors.border }]} />
             </>
           )}
-          <Pressable onPress={() => Alert.alert("Sign Out", "Are you sure?", [{ text: "Cancel", style: "cancel" }, { text: "Sign Out", onPress: () => { clearAllStorage().then(() => { resetAuthState(); router.replace("/welcome"); }); } }])} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
+          <Pressable onPress={() => Alert.alert("Sign Out", "You will stay registered on this device. Tap Continue on the welcome screen to reconnect.", [{ text: "Cancel", style: "cancel" }, { text: "Sign Out", onPress: () => { signOutSession().then(() => router.replace("/welcome")); } }])} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
             <Text style={[styles.rowLabel, { color: colors.error }]}>Sign Out</Text>
+          </Pressable>
+          <View style={[styles.divider, { backgroundColor: colors.border }]} />
+          <Pressable onPress={() => Alert.alert("Reset App", "This deletes your registration and all local data on this device.", [{ text: "Cancel", style: "cancel" }, { text: "Reset", style: "destructive", onPress: () => { clearAllStorage().then(() => { resetAuthState(); router.replace("/welcome"); }); } }])} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
+            <Text style={[styles.rowLabel, { color: colors.error }]}>Reset App Data</Text>
           </Pressable>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <Pressable onPress={() => router.push("/delete-account")} style={({ pressed }) => [styles.row, pressed && { opacity: 0.7 }]}>
@@ -281,7 +278,7 @@ export default function SettingsScreen() {
         </View>
 
         {/* Version */}
-        <Text style={{ textAlign: "center", color: colors.muted, fontSize: 13, paddingTop: 24 }}>Gusha v1.0.0</Text>
+        <Text style={{ textAlign: "center", color: colors.muted, fontSize: 13, paddingTop: 24 }}>Gusha v1.0.2</Text>
       </ScrollView>
     </ScreenContainer>
   );

@@ -38,10 +38,16 @@ const env = {
   androidPackage: bundleId,
 };
 
+const photoLibraryPermission =
+  "Gusha uses your photo library so you can add photos to your profile and send images in chat with other users. For example, you can choose a picture from your gallery as a profile photo.";
+
+const locationPermission =
+  "Gusha uses your location only while you are checked in to the radar, so nearby users can see your approximate distance. You choose when to check in and can check out anytime.";
+
 const config: ExpoConfig = {
   name: env.appName,
   slug: env.appSlug,
-  version: "1.0.1",
+  version: "1.0.2",
   orientation: "portrait",
   icon: "./assets/images/icon.png",
   scheme: env.scheme,
@@ -49,11 +55,14 @@ const config: ExpoConfig = {
   newArchEnabled: true,
   ios: {
     supportsTablet: true,
-    buildNumber: "10013",
+    buildNumber: "10015",
     bundleIdentifier: env.iosBundleId,
-    "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
+    infoPlist: {
+      ITSAppUsesNonExemptEncryption: false,
+      NSPhotoLibraryUsageDescription: photoLibraryPermission,
+      NSLocationWhenInUseUsageDescription:
+        "Gusha uses your location only while you are checked in to the radar, so nearby users can see your approximate distance. You choose when to check in and can check out anytime.",
+    },
   },
   android: {
     adaptiveIcon: {
@@ -88,16 +97,17 @@ const config: ExpoConfig = {
   plugins: [
     "expo-router",
     [
-      "expo-audio",
+      "expo-location",
       {
-        microphonePermission: "Allow $(PRODUCT_NAME) to access your microphone.",
+        locationWhenInUsePermission: locationPermission,
       },
     ],
     [
-      "expo-video",
+      "expo-image-picker",
       {
-        supportsBackgroundPlayback: true,
-        supportsPictureInPicture: true,
+        photosPermission: photoLibraryPermission,
+        cameraPermission: false,
+        microphonePermission: false,
       },
     ],
     [

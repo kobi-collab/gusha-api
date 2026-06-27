@@ -19,6 +19,7 @@ import type { EdgeInsets, Metrics, Rect } from "react-native-safe-area-context";
 import { trpc, createTRPCClient } from "@/lib/trpc";
 import { initManusRuntime, subscribeSafeAreaInsets } from "@/lib/_core/manus-runtime";
 import { useAuthGate, AuthLoadingScreen } from "@/components/auth-gate";
+import { useGuestSession } from "@/hooks/use-guest-session";
 import { usePushNotifications } from "@/hooks/use-push-notifications";
 import { useWebSocket } from "@/hooks/use-websocket";
 
@@ -31,6 +32,7 @@ export const unstable_settings = {
 
 function InnerLayout() {
   const { loading } = useAuthGate();
+  useGuestSession();
   // Initialize push notifications
   usePushNotifications();
   // Initialize WebSocket connection for real-time features

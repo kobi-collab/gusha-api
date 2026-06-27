@@ -1,11 +1,16 @@
-import { Text, View, Pressable, StyleSheet, ActivityIndicator, Alert, Platform } from "react-native";
+import { Text, View, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
 import { Image } from "expo-image";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
 import { useColors } from "@/hooks/use-colors";
 import { ScreenContainer } from "@/components/screen-container";
-import * as Auth from "@/lib/_core/auth";
 import { isRegistrationComplete } from "@/lib/storage";
+import {
+  connectGuestSession,
+  showGuestSessionFailureAlert,
+} from "@/hooks/use-guest-session";
+import { setDemoIntent } from "@/lib/app-intent";
+import { enterDemoMode } from "@/lib/demo-session";
 
 export default function WelcomeScreen() {
   const colors = useColors();
@@ -17,9 +22,21 @@ export default function WelcomeScreen() {
     isRegistrationComplete().then(setSetupDone);
   }, []);
 
-  const handleGetStarted = () => {
+  const handleGetStarted = async () => {
     if (setupDone) {
-      router.replace("/(tabs)");
+      setLoading(true);
+      try {
+        const result = await connectGuestSession();
+        if (!result.ok) {
+          showGuestSessionFailureAlert(result.message, () => {
+            void handleGetStarted();
+          });
+          return;
+        }
+        router.replace("/(tabs)");
+      } finally {
+        setLoading(false);
+      }
     } else {
       router.push("/age-gate");
     }
@@ -28,19 +45,8 @@ export default function WelcomeScreen() {
   const handleDemoMode = async () => {
     setLoading(true);
     try {
-      const demoUser: Auth.User = {
-        id: 999,
-        openId: "demo-user-001",
-        name: "Demo User",
-        email: "demo@gusha.app",
-        loginMethod: "demo",
-        lastSignedIn: new Date(),
-      };
-      await Auth.setUserInfo(demoUser);
-      if (Platform.OS === "web") {
-        window.localStorage.setItem("demo_mode", "true");
-      }
-      await Auth.completeLogin("demo-session-token", demoUser);
+      await enterDemoMode();
+      router.replace("/(tabs)");
     } catch (err) {
       console.error("[Welcome] Demo mode error:", err);
       Alert.alert("Error", "Failed to start demo mode");
@@ -49,10 +55,11 @@ export default function WelcomeScreen() {
     }
   };
 
-  const handleTryDemo = () => {
+  const handleTryDemo = async () => {
     if (setupDone) {
-      handleDemoMode();
+      await handleDemoMode();
     } else {
+      await setDemoIntent();
       router.push("/age-gate");
     }
   };

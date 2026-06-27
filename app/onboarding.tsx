@@ -23,6 +23,10 @@ import {
   isOnboardingComplete,
 } from "@/lib/storage";
 import { setOnboardingDoneDirect } from "@/components/auth-gate";
+import {
+  connectGuestSession,
+  showGuestSessionFailureAlert,
+} from "@/hooks/use-guest-session";
 import type { GenderIdentity, LookingForOption } from "@/lib/mock-data";
 
 const STEP_COUNT = 4;
@@ -107,6 +111,11 @@ export default function OnboardingScreen() {
       }
     }
 
+    if (step === 2 && !selectedGender) {
+      Alert.alert("Selection Required", "Please choose how you identify to continue.");
+      return;
+    }
+
     if (step < STEP_COUNT) {
       console.log("[Onboarding] handleContinue: taking early return, advancing step");
       setStep(s => s + 1);
@@ -160,6 +169,27 @@ export default function OnboardingScreen() {
       // Push the confirmed value directly into auth-gate's React state so it
       // doesn't need to do another async storage read during navigation.
       setOnboardingDoneDirect(true);
+
+      try {
+        const session = await connectGuestSession();
+        if (!session.ok) {
+          showGuestSessionFailureAlert(session.message, () => {
+            void handleContinue();
+          });
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.warn("[Onboarding] guest session setup failed:", e);
+        showGuestSessionFailureAlert(
+          "Could not connect to Gusha. Check your internet connection and try again.",
+          () => {
+            void handleContinue();
+          }
+        );
+        setLoading(false);
+        return;
+      }
 
       router.replace("/(tabs)");
     } catch (err) {
@@ -313,7 +343,7 @@ export default function OnboardingScreen() {
             )}
           </Pressable>
 
-          {step > 1 && step < STEP_COUNT && (
+          {step > 1 && step < STEP_COUNT && step !== 2 && (
             <Pressable
               onPress={() => setStep(s => s + 1)}
               style={styles.skipBtn}

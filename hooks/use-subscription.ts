@@ -94,13 +94,11 @@ export function useSubscription() {
    * Check if the current plan has a specific feature.
    */
   const checkFeature = useCallback(
-    (feature: PlanFeature): boolean => {
-      // During open beta, all features are unlocked
-      // Remove this line when ready to enforce subscriptions
-      // return true;
-      return hasFeature(currentPlan, feature);
+    (_feature: PlanFeature): boolean => {
+      // v1.0.2 — all features are free; no paid tiers sold in this build.
+      return true;
     },
-    [currentPlan]
+    []
   );
 
   /**

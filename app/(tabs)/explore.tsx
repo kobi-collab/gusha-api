@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -16,10 +16,10 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
-import { useSubscription } from "@/hooks/use-subscription";
 import { trpc } from "@/lib/trpc";
 import { DEMO_NEARBY_USERS } from "@/lib/demo-data";
-import { isAgeVerified, isOnboardingComplete } from "@/lib/storage";
+import { isExplicitDemoMode } from "@/lib/app-mode";
+import { useDemoRadarStatus } from "@/lib/demo-radar";
 
 const { width } = Dimensions.get("window");
 const GRID_GAP = 2;
@@ -28,11 +28,8 @@ const TILE_SIZE = (width - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS;
 
 type ExploreMode = "nearby" | "world";
 
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined") {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
+function isDemoMode(userLoginMethod?: string | null): boolean {
+  return isExplicitDemoMode(userLoginMethod);
 }
 
 /** Popular cities for the World picker */
@@ -66,30 +63,15 @@ function demoProfiles() {
 export default function ExploreScreen() {
   const colors = useColors();
   const { user, isAuthenticated } = useAuth();
-  const { hasFeature } = useSubscription();
 
-  // Detect "local user": completed age-gate + onboarding but hasn't signed in via OAuth.
-  // These users get full access without a paywall (same as demo mode).
-  // With the in-memory cache in storage.ts this resolves synchronously after the first read.
-  const [isLocalUser, setIsLocalUser] = useState(false);
-  useEffect(() => {
-    if (isAuthenticated) {
-      setIsLocalUser(false);
-      return;
-    }
-    Promise.all([isAgeVerified(), isOnboardingComplete()]).then(([age, onboarding]) => {
-      setIsLocalUser(age && onboarding);
-    });
-  }, [isAuthenticated]);
-
-  // Detect demo mode via localStorage (web) OR user.loginMethod (native) OR registered-but-not-OAuth'd
-  const demo = isDemoMode() || user?.loginMethod === "demo" || (isLocalUser && !isAuthenticated);
+  const demo = isDemoMode(user?.loginMethod);
+  const demoRadar = useDemoRadarStatus();
 
   const [mode, setMode] = useState<ExploreMode>("nearby");
   const [selectedCity, setSelectedCity] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const canExplore = demo || hasFeature("explore");
+  const canExplore = true;
 
   // Fetch profiles from server — city=undefined means "nearby / no filter"
   // enabled only when: not demo, has access, and (nearby always | world only after city chosen)
@@ -105,9 +87,11 @@ export default function ExploreScreen() {
 
   // Profiles shown in the grid
   const profiles = useMemo(() => {
-    if (demo) return demoProfiles();
+    if (demo) {
+      return demoRadar.isCheckedIn ? demoProfiles() : [];
+    }
     return serverProfiles ?? [];
-  }, [demo, serverProfiles]);
+  }, [demo, demoRadar.isCheckedIn, serverProfiles]);
 
   // For the world city search list (suggestions)
   const filteredCities = useMemo(() => {
@@ -186,37 +170,6 @@ export default function ExploreScreen() {
     },
     [colors, handleProfilePress]
   );
-
-  // Paywall for non-subscribers (never shown in demo mode)
-  if (!demo && !canExplore) {
-    return (
-      <ScreenContainer edges={["top", "left", "right", "bottom"]}>
-        <View style={styles.header}>
-          <Text style={[styles.headerTitle, { color: colors.foreground }]}>Explore</Text>
-        </View>
-        <View style={styles.paywallContainer}>
-          <IconSymbol name="globe" size={64} color={colors.primary} />
-          <Text style={[styles.paywallTitle, { color: colors.foreground }]}>
-            Explore the World
-          </Text>
-          <Text style={[styles.paywallText, { color: colors.muted }]}>
-            Discover profiles from cities around the world. Upgrade to Gusha Plus or Premium to
-            unlock Explore.
-          </Text>
-          <Pressable
-            onPress={() => router.push("/subscription")}
-            style={({ pressed }) => [
-              styles.upgradeButton,
-              { backgroundColor: colors.primary },
-              pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
-            ]}
-          >
-            <Text style={styles.upgradeButtonText}>Upgrade Now</Text>
-          </Pressable>
-        </View>
-      </ScreenContainer>
-    );
-  }
 
   // ─── World mode: city not yet selected → show search + suggestions ───────
   const showWorldSearch = mode === "world" && !selectedCity;
@@ -357,7 +310,9 @@ export default function ExploreScreen() {
         <View style={styles.emptyContainer}>
           <IconSymbol name="person.fill.questionmark" size={48} color={colors.muted} />
           <Text style={[styles.emptyText, { color: colors.muted }]}>
-            {mode === "nearby"
+            {demo && !demoRadar.isCheckedIn
+              ? "Check in on the Radar tab to explore nearby demo profiles."
+              : mode === "nearby"
               ? "No one nearby yet"
               : `No profiles found${selectedCity ? ` in ${selectedCity}` : ""} yet`}
           </Text>
@@ -539,34 +494,5 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 15,
     textAlign: "center" as const,
-  },
-  // Paywall
-  paywallContainer: {
-    flex: 1,
-    alignItems: "center" as const,
-    justifyContent: "center" as const,
-    paddingHorizontal: 32,
-    gap: 16,
-  },
-  paywallTitle: {
-    fontSize: 24,
-    fontWeight: "700" as const,
-    textAlign: "center" as const,
-  },
-  paywallText: {
-    fontSize: 15,
-    textAlign: "center" as const,
-    lineHeight: 22,
-  },
-  upgradeButton: {
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 24,
-    marginTop: 8,
-  },
-  upgradeButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "700" as const,
   },
 });

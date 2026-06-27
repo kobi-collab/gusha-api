@@ -151,9 +151,115 @@ export async function upsertProfile(userId: number, data: any) {
   }
 }
 
+const RADAR_CHECK_IN_MS = 2 * 60 * 60 * 1000;
+
+function isActiveRadarSession(ext: Record<string, unknown> | null | undefined): boolean {
+  const expires = ext?.radarCheckInExpiresAt;
+  if (typeof expires !== "string" || !expires) return false;
+  return new Date(expires) > new Date();
+}
+
+function flattenProfileRow(row: (typeof userProfiles.$inferSelect)) {
+  const ext = (row.extendedProfile as Record<string, unknown>) || {};
+  return { ...row, ...ext };
+}
+
+export async function expireRadarSessionIfNeeded(userId: number): Promise<boolean> {
+  const profile = await getProfile(userId);
+  if (!profile) return false;
+  const ext = (profile.extendedProfile as Record<string, unknown>) || {};
+  if (!ext.radarCheckInExpiresAt) return false;
+  if (isActiveRadarSession(ext)) return false;
+  await radarCheckOut(userId);
+  return true;
+}
+
+export async function getRadarStatus(userId: number) {
+  await expireRadarSessionIfNeeded(userId);
+  const profile = await getProfile(userId);
+  if (!profile) {
+    return {
+      mapVisibilityConsent: false,
+      isCheckedIn: false,
+      checkInExpiresAt: null as string | null,
+      latitude: null as string | null,
+      longitude: null as string | null,
+    };
+  }
+  const ext = (profile.extendedProfile as Record<string, unknown>) || {};
+  const active = profile.isVisible === "true" && isActiveRadarSession(ext);
+  return {
+    mapVisibilityConsent: ext.mapVisibilityConsent === true,
+    isCheckedIn: active,
+    checkInExpiresAt: active && typeof ext.radarCheckInExpiresAt === "string"
+      ? ext.radarCheckInExpiresAt
+      : null,
+    latitude: active ? profile.latitude ?? null : null,
+    longitude: active ? profile.longitude ?? null : null,
+  };
+}
+
+export async function setMapVisibilityConsent(userId: number, consented: boolean) {
+  const profile = await getProfile(userId);
+  const ext = (profile?.extendedProfile as Record<string, unknown>) || {};
+  await upsertProfile(userId, {
+    extendedProfile: { ...ext, mapVisibilityConsent: consented },
+  });
+  if (!consented) {
+    await radarCheckOut(userId);
+  }
+  return { consented };
+}
+
+export async function radarCheckIn(
+  userId: number,
+  latitude: string,
+  longitude: string
+) {
+  const profile = await getProfile(userId);
+  const ext = (profile?.extendedProfile as Record<string, unknown>) || {};
+  if (ext.mapVisibilityConsent !== true) {
+    throw new Error("Map visibility consent is required before checking in");
+  }
+  const expiresAt = new Date(Date.now() + RADAR_CHECK_IN_MS).toISOString();
+  await upsertProfile(userId, {
+    latitude,
+    longitude,
+    isVisible: "true",
+    extendedProfile: { ...ext, radarCheckInExpiresAt: expiresAt },
+  });
+  return { expiresAt };
+}
+
+export async function radarCheckOut(userId: number) {
+  const profile = await getProfile(userId);
+  const ext = { ...((profile?.extendedProfile as Record<string, unknown>) || {}) };
+  delete ext.radarCheckInExpiresAt;
+  await upsertProfile(userId, {
+    isVisible: "false",
+    latitude: null,
+    longitude: null,
+    extendedProfile: ext,
+  });
+  return { success: true as const };
+}
+
+function filterActiveRadarProfiles<T extends { extendedProfile: unknown; isVisible: string }>(
+  rows: T[]
+): T[] {
+  const now = new Date();
+  return rows.filter((row) => {
+    if (row.isVisible !== "true") return false;
+    const ext = (row.extendedProfile as Record<string, unknown>) || {};
+    const expires = ext.radarCheckInExpiresAt;
+    return typeof expires === "string" && new Date(expires) > now;
+  });
+}
+
 export async function getNearbyProfiles(userId: number, limit = 100) {
   const db = await getDb();
   if (!db) return [];
+  await expireRadarSessionIfNeeded(userId);
   // Get blocked user IDs
   const blockedRows = await db.select({ blockedUserId: blocks.blockedUserId })
     .from(blocks).where(eq(blocks.blockerId, userId));
@@ -164,13 +270,14 @@ export async function getNearbyProfiles(userId: number, limit = 100) {
     ...blockedRows.map(r => r.blockedUserId),
     ...blockedByRows.map(r => r.blockerId),
   ];
-  return db.select()
+  const rows = await db.select()
     .from(userProfiles)
     .where(and(
       notInArray(userProfiles.userId, excludeIds),
       eq(userProfiles.isVisible, "true"),
     ))
     .limit(limit);
+  return filterActiveRadarProfiles(rows).map(flattenProfileRow);
 }
 
 /**
@@ -194,8 +301,7 @@ export async function getExploreProfiles(
     ...blockedRows.map(r => r.blockedUserId),
     ...blockedByRows.map(r => r.blockerId),
   ];
-  // Return all visible profiles (city/country filter is placeholder for future geolocation)
-  return db.select()
+  const rows = await db.select()
     .from(userProfiles)
     .where(and(
       notInArray(userProfiles.userId, excludeIds),
@@ -203,6 +309,7 @@ export async function getExploreProfiles(
     ))
     .orderBy(sql`RAND()`)
     .limit(opts.limit ?? 100);
+  return filterActiveRadarProfiles(rows).map(flattenProfileRow);
 }
 
 /**
@@ -231,13 +338,15 @@ export async function getNearbyProfilesWithBoosts(userId: number, limit = 100) {
     ));
   const boostedUserIds = new Set(activeBoosts.map(b => b.userId));
 
-  const profiles = await db.select()
-    .from(userProfiles)
-    .where(and(
-      notInArray(userProfiles.userId, excludeIds),
-      eq(userProfiles.isVisible, "true"),
-    ))
-    .limit(limit);
+  const profiles = filterActiveRadarProfiles(
+    await db.select()
+      .from(userProfiles)
+      .where(and(
+        notInArray(userProfiles.userId, excludeIds),
+        eq(userProfiles.isVisible, "true"),
+      ))
+      .limit(limit)
+  ).map(flattenProfileRow);
 
   // Sort boosted profiles to the top
   return profiles.sort((a, b) => {
@@ -429,6 +538,20 @@ export async function getBlockedUsers(userId: number) {
   const db = await getDb();
   if (!db) return [];
   return db.select().from(blocks).where(eq(blocks.blockerId, userId));
+}
+
+export async function getBlockedUsersWithProfiles(userId: number) {
+  const blocked = await getBlockedUsers(userId);
+  const result = [];
+  for (const row of blocked) {
+    const profile = await getProfile(row.blockedUserId);
+    result.push({
+      blockedUserId: row.blockedUserId,
+      displayName: profile?.displayName || "User",
+      createdAt: row.createdAt,
+    });
+  }
+  return result;
 }
 
 // ── Report Queries ──

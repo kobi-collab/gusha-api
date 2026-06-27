@@ -1,5 +1,5 @@
-import { useMemo, useCallback, useState, useEffect } from "react";
-import { Text, View, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl, Platform } from "react-native";
+import { useMemo, useCallback } from "react";
+import { Text, View, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { UserAvatar } from "@/components/user-avatar";
@@ -8,13 +8,10 @@ import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import { formatTime } from "@/lib/mock-data";
 import { DEMO_CONVERSATIONS } from "@/lib/demo-data";
-import { isAgeVerified, isOnboardingComplete } from "@/lib/storage";
+import { isExplicitDemoMode } from "@/lib/app-mode";
 
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
+function isDemoMode(userLoginMethod?: string | null): boolean {
+  return isExplicitDemoMode(userLoginMethod);
 }
 
 interface ConversationItem {
@@ -32,19 +29,7 @@ export default function ChatListScreen() {
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
 
-  // Detect registered-but-not-OAuth'd local users (same pattern as explore.tsx)
-  const [isLocalUser, setIsLocalUser] = useState(false);
-  useEffect(() => {
-    if (isAuthenticated) {
-      setIsLocalUser(false);
-      return;
-    }
-    Promise.all([isAgeVerified(), isOnboardingComplete()]).then(([age, onboarding]) => {
-      setIsLocalUser(age && onboarding);
-    });
-  }, [isAuthenticated]);
-
-  const demo = isDemoMode() || user?.loginMethod === "demo" || (isLocalUser && !isAuthenticated);
+  const demo = isDemoMode(user?.loginMethod);
 
   // Fetch conversation partner IDs (skip in demo mode)
   const conversationsQuery = trpc.messages.conversations.useQuery(undefined, {
@@ -77,8 +62,7 @@ export default function ChatListScreen() {
       unreadCount: 0,
       lastMessageType: "text",
     }));
-    // Show demo conversations as fallback when no real conversations exist
-    return realConvos.length > 0 ? realConvos : demoConvos;
+    return realConvos;
   }, [partnerIds, demo]);
 
   const onRefresh = useCallback(async () => {

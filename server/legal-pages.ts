@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { PRIVACY_EMAIL, SAFETY_EMAIL, SUPPORT_EMAIL } from "../shared/const.js";
 
 const PAGE_STYLE = `
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px 16px; color: #1A1A2E; background: #FAFAFF; line-height: 1.6; }
@@ -28,7 +29,7 @@ function wrapHtml(title: string, lastUpdated: string, body: string): string {
   <p class="meta">Last Updated: ${lastUpdated}</p>
   ${body}
   <hr style="margin-top: 40px; border: none; border-top: 1px solid #E0DFE8;">
-  <p style="color: #7E7E8F; font-size: 13px;">TGBC. | Company Registration No.: 028871614 | Parlok 17 Tel Aviv, Israel | office@tgbc.co.il</p>
+  <p style="color: #7E7E8F; font-size: 13px;">TGBC. | Company Registration No.: 028871614 | Parlok 17 Tel Aviv, Israel | ${SUPPORT_EMAIL} | ${PRIVACY_EMAIL}</p>
 </body>
 </html>`;
 }
@@ -42,7 +43,7 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>"The Company" – TGBC., Company Registration Number 028871614, which owns and manages the App.</p>
 <p>"User" – Any person who has registered for the service and created a user account in the App, or makes any use of the App.</p>
 <p>"User Content" – Any information, data, or material of any kind uploaded or provided in the course of using the Service, including texts, photos, links, comments, messages, Taps, profile information, etc.</p>
-<p>"Subscription" – Any paid service plan (including, but not limited to, the Plus and Premium plans), which grants access to additional features beyond the free plan.</p>
+<p>"Subscription" – Optional paid plans that may be offered in the future to unlock additional features. Gusha is currently free to use; no paid subscriptions are sold in the app at this time.</p>
 
 <h3>Acceptance</h3>
 <p>The use of the App, including downloading, installing, creating an account, logging in, browsing the Grid, sending messages, or any other use, constitutes the User's full and unconditional agreement to these Terms of Use, the Privacy Policy, and the Community Guidelines, as they may be updated from time to time.</p>
@@ -50,7 +51,7 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>The Company reserves the right, at its sole discretion, to update the Terms of Use, Privacy Policy, and Community Guidelines from time to time. A material update will be published in the App and/or on the website, and continued use of the App after the updates take effect constitutes acceptance of the updated terms.</p>
 
 <h2>2. Description and Purpose of the Service</h2>
-<p>The App is designed to allow adults over the age of 18 to create a personal profile, discover, and connect with other users through profile displays, use of a location-based Grid, exchanging messages and photos, using Taps, marking favorites, seeing who viewed their profile, playing community games, and additional features that may be added or modified from time to time.</p>
+<p>The App is designed to allow adults over the age of 18 to create a personal profile, discover, and connect with other users through profile displays, a location-based Radar (manual check-in only), exchanging messages and photos, playing community games, and additional features that may be added or modified from time to time.</p>
 <p>The Company does not provide professional counseling services or any other service beyond providing a technological platform that facilitates communication and community building between users. The Company does not guarantee that using the App will result in connections, meetings, friendships, or any other outcome.</p>
 
 <h2>3. Eligibility and Minimum Age Requirements</h2>
@@ -60,7 +61,7 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>The App is not intended for minors, and the Company does not knowingly collect information from minors.</p>
 
 <h2>4. Registration Process and Information Accuracy</h2>
-<p>To use certain features of the App, the User must create a user account, either using an email address and password or via an external login service (such as Google, Apple, or others).</p>
+<p>To use certain features of the App, the User must create a profile by completing onboarding. This creates a guest account linked to the User's device. Optional sign-in via Apple, Google, or other providers may be offered in a future update.</p>
 <p>The User declares that all details and information they provide to the Company, upon registration and during the use of the App, are true, accurate, complete, and up-to-date.</p>
 <p>It is strictly prohibited to use false details, impersonate another person, open an account in the name of a third party without their consent, or use any means to conceal identity in a manner that misleads other users or the Company.</p>
 
@@ -75,11 +76,11 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <h2>7. Intellectual Property Rights</h2>
 <p>The User retains ownership of their User Content, but grants the Company a worldwide, non-exclusive, royalty-free license to transmit, display, and process the content for the purpose of operating the Service.</p>
 <p>All rights to the App itself (the name "Gusha", logo, design, code, databases) belong exclusively to the Company.</p>
-<p>Copyright Policy (DMCA): The Company respects intellectual property rights. If you believe that content on the App infringes your copyright, please contact our Copyright Agent at <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a>.</p>
+<p>Copyright Policy (DMCA): The Company respects intellectual property rights. If you believe that content on the App infringes your copyright, please contact our Copyright Agent at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
 
 <h2>8. Subscriptions and Payments</h2>
-<p>The App offers three service tiers: Free, Plus, and Premium. Paid subscriptions are processed exclusively through Apple In-App Purchases and Google Play Billing, and renew automatically until canceled.</p>
-<p>Cancellation is done via the account settings in the respective stores (Apple / Google). The Company cannot cancel a subscription on behalf of the User.</p>
+<p>Gusha is currently offered at no charge. All core features are available without payment.</p>
+<p>The Company may introduce optional paid plans in a future version. If and when paid plans become available, they will be processed through Apple In-App Purchases and/or Google Play Billing, will renew automatically until canceled in your store account settings, and the Company cannot cancel a subscription on your behalf.</p>
 <p>Refunds are handled according to Apple and Google policies.</p>
 
 <h2>9. Limitation of Liability</h2>
@@ -102,7 +103,7 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>The Hebrew version of these Terms is the binding version. Translations are provided for convenience only.</p>
 
 <h2>13. Company Details</h2>
-<p>TGBC.<br>Company Registration No.: 028871614<br>Address: Parlok 17 Tel Aviv, Israel<br>Legal Email: <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a><br>Support Email: <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a></p>
+<p>TGBC.<br>Company Registration No.: 028871614<br>Address: Parlok 17 Tel Aviv, Israel<br>Privacy: <a href="mailto:${PRIVACY_EMAIL}">${PRIVACY_EMAIL}</a><br>Support: <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a><br>Safety: <a href="mailto:${SAFETY_EMAIL}">${SAFETY_EMAIL}</a></p>
 `);
 
 // ── Privacy Policy ──
@@ -110,17 +111,17 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
 <h2>1. Information Collected</h2>
 <p>We collect the following types of information:</p>
-<p><strong>Personal Information:</strong> Display name, age, gender, gender identity, sexual orientation, height, body type, "looking for", tags, links to social networks, profile pictures.</p>
-<p><strong>Location Information:</strong> Exact or approximate GPS data.</p>
-<p><strong>Usage Information:</strong> Login/logout times, profile views, messages, Taps, favorites, "who viewed me", Seen/Typing indicators.</p>
-<p><strong>Device Information:</strong> IP address, device type, operating system, advertising ID, logs, and crash reports.</p>
-<p><strong>Payment Information:</strong> Subscription type, renewal dates (excluding credit card details – handled by Apple/Google).</p>
+<p><strong>Personal Information:</strong> Display name, age, gender identity, interests, profile pictures, and other profile fields you choose to provide.</p>
+<p><strong>Location Information:</strong> Approximate location, collected only when you manually check in to the Radar and grant location permission. You can check out at any time.</p>
+<p><strong>Usage Information:</strong> Login times, profile views, messages, favorites, and in-app actions needed to operate the service.</p>
+<p><strong>Device Information:</strong> IP address, device type, operating system, and crash reports.</p>
+<p><strong>Payment Information:</strong> Not collected in the current free version of Gusha. If paid plans are introduced in a future version, purchases will be processed by Apple or Google; we will not receive your full payment card details.</p>
 <p><strong>Purposes:</strong> Profile creation, service operation, matching, security, improving user experience, fraud prevention, legal compliance.</p>
 <p><strong>Legal Basis for Processing (EU/UK Users):</strong> We process your data based on: (a) Performance of a contract with you; (b) Explicit consent (regarding sexual orientation, precise location, and advertising cookies); (c) Legitimate interest (for platform security, fraud prevention, and service improvement); (d) Legal obligation.</p>
 
 <h2>2. Sensitive Information</h2>
-<p><strong>Sexual orientation and LGBTQ+ identity</strong> – Sensitive information by law; processed only with your explicit consent.</p>
-<p><strong>Exact location</strong> – Requires opt-in for described usage (Grid, displaying nearby users).</p>
+<p><strong>Gender identity and profile preferences</strong> – Processed to operate your profile and discovery features, based on information you provide.</p>
+<p><strong>Approximate location</strong> – Collected only when you manually check in to Radar and grant permission. Used to show approximate distance to nearby users who are also checked in.</p>
 <p><strong>Photos (including in chats and disappearing photos)</strong> – Processed for transmission, anti-abuse, and CSAE; stored encrypted according to a limited retention policy.</p>
 
 <h2>3. Storage and Security</h2>
@@ -149,7 +150,7 @@ const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
   <li><strong>Right to object</strong> – To certain processing (e.g., advertising).</li>
   <li><strong>Right to withdraw consent</strong> – To revoke consent for processing.</li>
 </ul>
-<p>Exercise your rights by contacting <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a> or via the App interface.</p>
+<p>Exercise your rights by contacting <a href="mailto:${PRIVACY_EMAIL}">${PRIVACY_EMAIL}</a> or via the App (Settings → Delete Account).</p>
 
 <h2>6. Data Transfer Outside Israel / EEA</h2>
 <p>Information may be stored or processed in other countries (e.g., EU, USA). Transfers will be made in accordance with approved transfer mechanisms (such as SCCs), and in accordance with Amendment 13 requirements.</p>
@@ -170,10 +171,10 @@ const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
 <p>We may update this policy from time to time. A material update will be published in the App, and continued use thereafter will be deemed as consent.</p>
 
 <h2>10. Contact Us</h2>
-<p>For questions or requests regarding this policy: <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a></p>
+<p>For questions or requests regarding this policy: <a href="mailto:${PRIVACY_EMAIL}">${PRIVACY_EMAIL}</a></p>
 
 <h2>11. Privacy Rights for California and US Residents (CCPA/CPRA)</h2>
-<p>If you are a resident of California or another applicable US state, you have specific rights regarding your personal information. The Company does not "sell" your personal information to third parties for monetary consideration. You have the right to request to know what information has been collected about you, to request its deletion, and to opt-out of the sharing of your information for advertising purposes ("Do Not Sell or Share My Personal Information") by contacting us at <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a> or via the privacy settings menu in the App.</p>
+<p>If you are a resident of California or another applicable US state, you have specific rights regarding your personal information. The Company does not "sell" your personal information to third parties for monetary consideration. You have the right to request to know what information has been collected about you, to request its deletion, and to opt-out of the sharing of your information for advertising purposes ("Do Not Sell or Share My Personal Information") by contacting us at <a href="mailto:${PRIVACY_EMAIL}">${PRIVACY_EMAIL}</a> or via Settings in the App.</p>
 `);
 
 // ── Delete Account Page ──
@@ -206,10 +207,10 @@ const DELETE_ACCOUNT_HTML = wrapHtml("Delete Your Account", "March 26, 2026", `
 <p>After account deletion, your data is removed from our active systems immediately. Some data may be retained in encrypted backups for up to 30 days before being permanently purged, as required for legal compliance and fraud prevention.</p>
 
 <h2>Alternative: Contact Us</h2>
-<p>If you are unable to access the app, you can request account deletion by emailing <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a> from the email address associated with your account. We will process your request within 7 business days.</p>
+<p>If you are unable to access the app, you can request account deletion by emailing <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>. We will process your request within 7 business days.</p>
 
 <h2>Questions?</h2>
-<p>For any questions about data deletion, please contact us at <a href="mailto:office@tgbc.co.il">office@tgbc.co.il</a>.</p>
+<p>For any questions about data deletion, please contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
 `);
 
 // ── Register Routes ──

@@ -1,6 +1,7 @@
 import { COOKIE_NAME, ONE_YEAR_MS } from "../../shared/const.js";
 import type { Express, Request, Response } from "express";
-import { getUserByOpenId, upsertUser } from "../db";
+import { z } from "zod";
+import { getUserByOpenId, upsertUser, upsertProfile } from "../db";
 import { getSessionCookieOptions } from "./cookies";
 import { sdk } from "./sdk";
 
@@ -132,6 +133,59 @@ export function registerOAuthRoutes(app: Express) {
     const cookieOptions = getSessionCookieOptions(req);
     res.clearCookie(COOKIE_NAME, { ...cookieOptions, maxAge: -1 });
     res.json({ success: true });
+  });
+
+  /** Create or restore a guest account for device-based local registration. */
+  app.post("/api/auth/guest", async (req: Request, res: Response) => {
+    try {
+      const body = z
+        .object({
+          deviceId: z.string().uuid(),
+          displayName: z.string().max(100).optional(),
+        })
+        .parse(req.body);
+
+      const openId = `guest_${body.deviceId.replace(/-/g, "")}`;
+      const lastSignedIn = new Date();
+      await upsertUser({
+        openId,
+        name: body.displayName ?? null,
+        email: null,
+        loginMethod: "guest",
+        lastSignedIn,
+      });
+      const user = await getUserByOpenId(openId);
+      if (!user) {
+        res.status(500).json({ error: "Failed to create guest user" });
+        return;
+      }
+
+      if (body.displayName) {
+        await upsertProfile(user.id, {
+          displayName: body.displayName,
+        });
+      }
+
+      const sessionToken = await sdk.createSessionToken(openId, {
+        name: body.displayName || user.name || "Guest",
+        expiresInMs: ONE_YEAR_MS,
+      });
+
+      const cookieOptions = getSessionCookieOptions(req);
+      res.cookie(COOKIE_NAME, sessionToken, { ...cookieOptions, maxAge: ONE_YEAR_MS });
+
+      res.json({
+        sessionToken,
+        user: buildUserResponse(user),
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ error: "Invalid guest registration request" });
+        return;
+      }
+      console.error("[Auth] Guest registration failed:", error);
+      res.status(500).json({ error: "Guest registration failed" });
+    }
   });
 
   // Get current authenticated user - works with both cookie (web) and Bearer token (mobile)

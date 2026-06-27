@@ -247,7 +247,7 @@ export const DEFAULT_PROFILE: UserProfile = {
   tags: [],
   socialLinks: {},
   mood: null,
-  isVisible: true,
+  isVisible: false,
   maxDistance: 5,
   // Legacy compat
   interests: [],

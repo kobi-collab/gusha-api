@@ -16,8 +16,11 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { IconSymbol } from "@/components/ui/icon-symbol";
-import { setAgeVerified } from "@/lib/storage";
-import { setAgeOkDirect } from "@/components/auth-gate";
+import { setAgeVerified, saveProfile, setOnboardingComplete } from "@/lib/storage";
+import { setAgeOkDirect, setOnboardingDoneDirect } from "@/components/auth-gate";
+import { consumeDemoIntent } from "@/lib/app-intent";
+import { enterDemoMode } from "@/lib/demo-session";
+import { DEFAULT_PROFILE } from "@/lib/mock-data";
 
 export default function AgeGateScreen() {
   const colors = useColors();
@@ -85,8 +88,23 @@ export default function AgeGateScreen() {
     setLoading(true);
     try {
       await setAgeVerified(true);
-      // Sync flag for auth-gate immediately (in-memory + storage write already cached in setAgeVerified).
       setAgeOkDirect(true);
+
+      if (await consumeDemoIntent()) {
+        await saveProfile({
+          ...DEFAULT_PROFILE,
+          name: "Demo User",
+          displayName: "Demo User",
+          age: 25,
+          genderIdentity: "Woman",
+        });
+        await setOnboardingComplete();
+        setOnboardingDoneDirect(true);
+        await enterDemoMode();
+        router.replace("/(tabs)");
+        return;
+      }
+
       router.replace("/onboarding");
     } catch (err) {
       console.error("[AgeGate] setAgeVerified failed:", err);

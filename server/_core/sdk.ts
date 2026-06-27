@@ -251,6 +251,18 @@ class SDKServer {
     const signedInAt = new Date();
     let user = await db.getUserByOpenId(sessionUserId);
 
+    // Guest accounts are created locally — no OAuth lookup required.
+    if (!user && sessionUserId.startsWith("guest_")) {
+      await db.upsertUser({
+        openId: sessionUserId,
+        name: session.name || null,
+        email: null,
+        loginMethod: "guest",
+        lastSignedIn: signedInAt,
+      });
+      user = await db.getUserByOpenId(sessionUserId);
+    }
+
     // If user not in DB, sync from OAuth server automatically
     if (!user) {
       try {

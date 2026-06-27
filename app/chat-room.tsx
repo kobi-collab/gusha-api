@@ -17,13 +17,10 @@ import { ChatMessage, formatTime } from "@/lib/mock-data";
 import { DEMO_MESSAGES, DEMO_CONVERSATIONS } from "@/lib/demo-data";
 import { useWebSocket, sendTyping, sendStopTyping, type WsMessage } from "@/hooks/use-websocket";
 import { useUserOnlineStatus, formatLastSeen } from "@/hooks/use-online-status";
-import { isAgeVerified, isOnboardingComplete } from "@/lib/storage";
+import { isExplicitDemoMode } from "@/lib/app-mode";
 
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
+function isDemoMode(userLoginMethod?: string | null): boolean {
+  return isExplicitDemoMode(userLoginMethod);
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -148,17 +145,7 @@ export default function ChatRoomScreen() {
 
   // Match chat.tsx / explore.tsx demo detection so registered-but-not-OAuth'd
   // users on iOS still see the sample conversation history they came from.
-  const [isLocalUser, setIsLocalUser] = useState(false);
-  useEffect(() => {
-    if (isAuthenticated) {
-      setIsLocalUser(false);
-      return;
-    }
-    Promise.all([isAgeVerified(), isOnboardingComplete()]).then(([age, onboarding]) => {
-      setIsLocalUser(age && onboarding);
-    });
-  }, [isAuthenticated]);
-  const demo = isDemoMode() || user?.loginMethod === "demo" || (isLocalUser && !isAuthenticated);
+  const demo = isDemoMode(user?.loginMethod);
   const partnerId = parseInt(userId || conversationId || "0", 10);
   const myId = user?.id || 0;
 
@@ -190,6 +177,24 @@ export default function ChatRoomScreen() {
   const sendMutation = trpc.messages.send.useMutation();
   const unsendMutation = trpc.messages.unsend.useMutation();
   const markReadMutation = trpc.messages.markRead.useMutation();
+  const blockMutation = trpc.safety.block.useMutation();
+
+  const handleBlock = useCallback(() => {
+    const numId = parseInt(userId || "0", 10);
+    Alert.alert("Block " + (userName || "this user") + "?", "They won't be able to see your profile or message you.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Block",
+        style: "destructive",
+        onPress: () => {
+          if (isAuthenticated && numId > 0) {
+            blockMutation.mutate({ userId: numId });
+          }
+          router.back();
+        },
+      },
+    ]);
+  }, [userId, userName, isAuthenticated, blockMutation, router]);
 
   // ── WebSocket Real-Time Handler ──
   const handleWsMessage = useCallback((msg: WsMessage) => {
@@ -468,6 +473,7 @@ export default function ChatRoomScreen() {
           <Pressable
             onPress={() => {
               Alert.alert("Options", undefined, [
+                { text: "Block", style: "destructive", onPress: handleBlock },
                 { text: "Report", style: "destructive", onPress: () => userId && router.push({ pathname: "/report", params: { userId, userName: userName || "" } }) },
                 { text: "Cancel", style: "cancel" },
               ]);

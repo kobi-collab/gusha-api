@@ -7,10 +7,10 @@ import * as db from "./db";
 
 // ── Types ──
 
-interface AuthenticatedSocket extends WebSocket {
+type AuthenticatedSocket = WebSocket & {
   userId: number;
   isAlive: boolean;
-}
+};
 
 interface WsMessage {
   type: string;
@@ -168,7 +168,7 @@ export function setupWebSocket(server: HttpServer): WebSocketServer {
     });
 
     // Handle incoming messages
-    socket.on("message", (rawData) => {
+    socket.on("message", (rawData: WebSocket.RawData) => {
       try {
         const data = JSON.parse(rawData.toString()) as WsMessage;
         handleClientMessage(socket, data);
@@ -193,7 +193,7 @@ export function setupWebSocket(server: HttpServer): WebSocketServer {
       console.log(`[WebSocket] User ${userId} disconnected`);
     });
 
-    socket.on("error", (err) => {
+    socket.on("error", (err: Error) => {
       console.warn(`[WebSocket] Error for user ${userId}:`, err.message);
     });
 

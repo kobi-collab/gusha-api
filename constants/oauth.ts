@@ -101,7 +101,15 @@ export const getLoginUrl = () => {
  *
  * @returns Always null, the callback is handled via deep link.
  */
+export function isOAuthConfigured(): boolean {
+  return Boolean(OAUTH_PORTAL_URL && APP_ID);
+}
+
 export async function startOAuthLogin(): Promise<string | null> {
+  if (!isOAuthConfigured()) {
+    return "unconfigured";
+  }
+
   const loginUrl = getLoginUrl();
 
   if (ReactNative.Platform.OS === "web") {

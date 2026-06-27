@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { COOKIE_NAME } from "../shared/const.js";
+import { TRPCError } from "@trpc/server";
 import { getSessionCookieOptions } from "./_core/cookies";
 import { systemRouter } from "./_core/systemRouter";
 import { publicProcedure, protectedProcedure, router } from "./_core/trpc";
@@ -72,7 +73,8 @@ export const appRouter = router({
         incognito: z.boolean().optional(),
       }))
       .mutation(({ ctx, input }) => {
-        return db.upsertProfile(ctx.user.id, input);
+        const { isVisible: _ignored, ...rest } = input;
+        return db.upsertProfile(ctx.user.id, rest);
       }),
 
     /** Toggle incognito mode (Premium only) */
@@ -81,10 +83,6 @@ export const appRouter = router({
       .mutation(async ({ ctx, input }) => {
         const profile = await db.getProfile(ctx.user.id);
         if (!profile) throw new Error("Profile not found");
-        // Only Premium users can enable incognito
-        if (input.enabled && profile.subscriptionPlan !== "premium") {
-          throw new Error("Incognito mode requires Premium subscription");
-        }
         const ext = (profile.extendedProfile as any) || {};
         ext.incognito = input.enabled;
         await db.upsertProfile(ctx.user.id, { extendedProfile: ext } as any);
@@ -107,6 +105,33 @@ export const appRouter = router({
       .query(({ ctx, input }) => {
         return db.getNearbyProfiles(ctx.user.id, input?.limit ?? 100);
       }),
+
+    /** Radar check-in status for the current user */
+    radarStatus: protectedProcedure.query(({ ctx }) => {
+      return db.getRadarStatus(ctx.user.id);
+    }),
+
+    /** Record explicit consent to appear on the radar map */
+    setMapConsent: protectedProcedure
+      .input(z.object({ consented: z.boolean() }))
+      .mutation(({ ctx, input }) => {
+        return db.setMapVisibilityConsent(ctx.user.id, input.consented);
+      }),
+
+    /** Manual check-in — user appears on radar until session expires */
+    radarCheckIn: protectedProcedure
+      .input(z.object({
+        latitude: z.string(),
+        longitude: z.string(),
+      }))
+      .mutation(({ ctx, input }) => {
+        return db.radarCheckIn(ctx.user.id, input.latitude, input.longitude);
+      }),
+
+    /** Manual check-out — hide from radar immediately */
+    radarCheckOut: protectedProcedure.mutation(({ ctx }) => {
+      return db.radarCheckOut(ctx.user.id);
+    }),
 
     /** Explore: discover profiles from any location (Plus/Premium feature) */
     explore: protectedProcedure
@@ -281,7 +306,7 @@ export const appRouter = router({
       }),
 
     blockedList: protectedProcedure.query(({ ctx }) => {
-      return db.getBlockedUsers(ctx.user.id);
+      return db.getBlockedUsersWithProfiles(ctx.user.id);
     }),
 
     report: protectedProcedure
@@ -312,7 +337,7 @@ export const appRouter = router({
       return subscription.getSubscriptionHistory(ctx.user.id);
     }),
 
-    /** Purchase a subscription (creates/upgrades) */
+    /** Purchase a subscription — disabled in v1.0.2 (free launch) */
     purchase: protectedProcedure
       .input(z.object({
         planId: z.enum(["plus", "premium"]),
@@ -322,10 +347,10 @@ export const appRouter = router({
         transactionId: z.string().optional(),
         receiptData: z.string().optional(),
       }))
-      .mutation(({ ctx, input }) => {
-        return subscription.createSubscription({
-          userId: ctx.user.id,
-          ...input,
+      .mutation(() => {
+        throw new TRPCError({
+          code: "FORBIDDEN",
+          message: "In-app purchases are not available in Gusha v1.0.2. All features are free.",
         });
       }),
 

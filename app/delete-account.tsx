@@ -7,30 +7,28 @@ import {
   StyleSheet,
   Alert,
   ActivityIndicator,
-  Platform,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { SUPPORT_EMAIL } from "@/constants/contact";
 import { useAuth } from "@/hooks/use-auth";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { getApiBaseUrl } from "@/constants/oauth";
-import * as Auth from "@/lib/_core/auth";
+import { trpc } from "@/lib/trpc";
+import { clearAllStorage } from "@/lib/storage";
+import { resetAuthState } from "@/components/auth-gate";
+import { isExplicitDemoMode } from "@/lib/app-mode";
 
 export default function DeleteAccountScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const deleteMutation = trpc.account.delete.useMutation();
   const [confirmText, setConfirmText] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [step, setStep] = useState<1 | 2>(1);
 
-  const isDemoMode =
-    Platform.OS === "web"
-      ? typeof window !== "undefined" &&
-        window.localStorage?.getItem("demo_mode") === "true"
-      : false;
+  const demo = isExplicitDemoMode(user?.loginMethod);
 
   const handleDelete = async () => {
     if (confirmText !== "DELETE") {
@@ -40,33 +38,12 @@ export default function DeleteAccountScreen() {
 
     setDeleting(true);
     try {
-      if (isDemoMode) {
-        // Demo mode: just clear local data
-        await AsyncStorage.clear();
-        if (Platform.OS === "web") {
-          window.localStorage.removeItem("demo_mode");
-        }
-      } else {
-        // Real mode: call server API
-        const baseUrl = getApiBaseUrl();
-        const token = await Auth.getSessionToken();
-        const headers: Record<string, string> = {
-          "Content-Type": "application/json",
-        };
-        if (token) headers["Authorization"] = `Bearer ${token}`;
-        const res = await fetch(`${baseUrl}/api/trpc/account.delete`, {
-          method: "POST",
-          headers,
-          credentials: "include",
-          body: JSON.stringify({ json: { confirmation: "DELETE" } }),
-        });
-        if (!res.ok) {
-          throw new Error(`Server returned ${res.status}`);
-        }
+      if (!demo) {
+        await deleteMutation.mutateAsync({ confirmation: "DELETE" });
       }
 
-      // Clear all local data
-      await AsyncStorage.clear();
+      await clearAllStorage();
+      resetAuthState();
 
       Alert.alert(
         "Account Deleted",
@@ -76,6 +53,7 @@ export default function DeleteAccountScreen() {
             text: "OK",
             onPress: () => {
               logout();
+              router.replace("/welcome");
             },
           },
         ]
@@ -84,7 +62,7 @@ export default function DeleteAccountScreen() {
       console.error("[DeleteAccount] Error:", err);
       Alert.alert(
         "Error",
-        "Failed to delete account. Please try again or contact support at support@gusha.app."
+        `Failed to delete account. Please try again or contact support at ${SUPPORT_EMAIL}.`
       );
     } finally {
       setDeleting(false);

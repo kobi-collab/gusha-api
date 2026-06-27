@@ -8,6 +8,8 @@ import {
   Modal,
   Platform,
   ScrollView,
+  Alert,
+  ActivityIndicator,
 } from "react-native";
 import Animated, {
   useSharedValue,
@@ -31,7 +33,6 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { UserAvatar } from "@/components/user-avatar";
 import {
-  MOCK_NEARBY_USERS,
   NearbyUser,
   SearchPreferences,
   DEFAULT_SEARCH_PREFERENCES,
@@ -42,14 +43,15 @@ import {
   MoodKey,
 } from "@/lib/mock-data";
 import { loadMyMood, saveMyMood } from "@/lib/storage";
-import { DEMO_NEARBY_USERS } from "@/lib/demo-data";
 import { loadSearchPreferences } from "@/lib/storage";
+import { useDiscovery } from "@/hooks/use-discovery";
+import { useRadarCheckIn } from "@/hooks/use-radar-check-in";
+import { useAuth } from "@/hooks/use-auth";
+import { isExplicitDemoMode } from "@/lib/app-mode";
+import { trpc } from "@/lib/trpc";
 
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
+function isDemoMode(userLoginMethod?: string | null): boolean {
+  return isExplicitDemoMode(userLoginMethod);
 }
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -259,6 +261,7 @@ function UserPopup({
   onClose,
   onChat,
   onViewProfile,
+  onBlock,
   colors,
 }: {
   user: NearbyUser | null;
@@ -266,6 +269,7 @@ function UserPopup({
   onClose: () => void;
   onChat: () => void;
   onViewProfile: () => void;
+  onBlock: () => void;
   colors: ReturnType<typeof useColors>;
 }) {
   if (!user) return null;
@@ -389,6 +393,17 @@ function UserPopup({
               </Text>
             </Pressable>
           </View>
+          <Pressable
+            onPress={onBlock}
+            style={({ pressed }) => [
+              styles.popupBlockBtn,
+              { borderColor: colors.error },
+              pressed && { opacity: 0.7 },
+            ]}
+          >
+            <IconSymbol name="nosign" size={16} color={colors.error} />
+            <Text style={[styles.popupBlockText, { color: colors.error }]}>Block</Text>
+          </Pressable>
         </Pressable>
       </Pressable>
     </Modal>
@@ -399,6 +414,7 @@ function UserPopup({
 export default function RadarScreen() {
   const colors = useColors();
   const router = useRouter();
+  const { isAuthenticated, user } = useAuth();
   const sweepRotation = useSharedValue(0);
   const [prefs, setPrefs] = useState<SearchPreferences>({
     ...DEFAULT_SEARCH_PREFERENCES,
@@ -408,6 +424,17 @@ export default function RadarScreen() {
   const [popupUser, setPopupUser] = useState<NearbyUser | null>(null);
   const [myMood, setMyMood] = useState<MoodKey | null>(null);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showConsentModal, setShowConsentModal] = useState(false);
+
+  const demo = isDemoMode(user?.loginMethod);
+  const radar = useRadarCheckIn({ demo });
+  const { users: discoveryUsers, loading: discoveryLoading, refetch } = useDiscovery(
+    prefs,
+    { latitude: radar.myLatitude, longitude: radar.myLongitude }
+  );
+  const blockMutation = trpc.safety.block.useMutation({
+    onSuccess: () => refetch(),
+  });
 
   // Pinch gesture state
   const savedScale = useRef(1);
@@ -456,9 +483,8 @@ export default function RadarScreen() {
     formatDistance(((i + 1) / RING_COUNT) * maxDistMeters)
   );
 
-  // Filter users
-  // Always show demo profiles when no real users are available
-  const radarUsers = (MOCK_NEARBY_USERS.length > 0) ? MOCK_NEARBY_USERS : DEMO_NEARBY_USERS;
+  // Nearby users — only when manually checked in (including demo)
+  const radarUsers = radar.isCheckedIn ? discoveryUsers : [];
 
   const filteredUsers = useMemo(() => {
     return radarUsers.filter((user) => {
@@ -559,6 +585,87 @@ export default function RadarScreen() {
     []
   );
 
+  const handleCheckInPress = useCallback(async () => {
+    if (radar.isCheckedIn) {
+      await radar.checkOut();
+      return;
+    }
+    if (!isAuthenticated && !demo) {
+      Alert.alert(
+        "Connection Required",
+        "Gusha needs to connect to your account before you can check in. Tap Continue on the welcome screen to reconnect."
+      );
+      return;
+    }
+    if (!radar.hasConsent) {
+      setShowConsentModal(true);
+      return;
+    }
+    await radar.checkIn();
+  }, [radar, isAuthenticated, demo]);
+
+  const handleConsentAllow = useCallback(async () => {
+    if (!isAuthenticated && !demo) {
+      setShowConsentModal(false);
+      Alert.alert(
+        "Connection Required",
+        "Gusha needs to connect to your account before you can check in. Tap Continue on the welcome screen to reconnect."
+      );
+      return;
+    }
+    await radar.grantConsent();
+    setShowConsentModal(false);
+    await radar.checkIn();
+  }, [radar, isAuthenticated, demo]);
+
+  const handleConsentDecline = useCallback(async () => {
+    await radar.declineConsent();
+    setShowConsentModal(false);
+  }, [radar]);
+
+  const handlePopupBlock = useCallback(() => {
+    if (!popupUser) return;
+    const userName = popupUser.name;
+    const numId = parseInt(popupUser.id, 10);
+    Alert.alert("Block User", `Are you sure you want to block ${userName}?`, [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Block",
+        style: "destructive",
+        onPress: () => {
+          if (demo) {
+            setPopupUser(null);
+            Alert.alert("Blocked", `${userName} has been blocked.`);
+            return;
+          }
+          if (!isAuthenticated) {
+            Alert.alert(
+              "Connection Required",
+              "Gusha needs to connect to your account before you can block users."
+            );
+            return;
+          }
+          if (isNaN(numId) || numId <= 0) {
+            Alert.alert("Cannot Block", "This user cannot be blocked right now.");
+            return;
+          }
+          blockMutation.mutate(
+            { userId: numId },
+            {
+              onSuccess: () => {
+                setPopupUser(null);
+                Alert.alert("Blocked", `${userName} has been blocked.`);
+              },
+              onError: () => {
+                Alert.alert("Block Failed", "Could not block this user. Please try again.");
+              },
+            }
+          );
+        },
+      },
+    ]);
+  }, [popupUser, isAuthenticated, blockMutation, demo]);
+
   // Zoom indicator text
   const zoomLabel =
     zoom > 1.05 ? `${zoom.toFixed(1)}x` : "";
@@ -583,19 +690,6 @@ export default function RadarScreen() {
               </Text>
             </View>
           ) : null}
-          <Pressable
-            onPress={() => router.push("/subscription")}
-            style={({ pressed }) => [
-              styles.filterButton,
-              {
-                backgroundColor: "#FF6B00",
-                borderColor: "#FF6B00",
-              },
-              pressed && { opacity: 0.8, transform: [{ scale: 0.97 }] },
-            ]}
-          >
-            <IconSymbol name="bolt.fill" size={18} color="#fff" />
-          </Pressable>
           <Pressable
             onPress={() => router.push("/search-preferences")}
             style={({ pressed }) => [
@@ -624,6 +718,59 @@ export default function RadarScreen() {
           </Pressable>
         </View>
       </View>
+
+      {/* Check-in bar */}
+      <View style={[styles.checkInBar, { backgroundColor: colors.surface, borderColor: colors.border }]}>
+          {radar.isCheckedIn ? (
+            <>
+              <View style={styles.checkInInfo}>
+                <View style={[styles.checkInDot, { backgroundColor: colors.success }]} />
+                <Text style={[styles.checkInText, { color: colors.foreground }]}>
+                  Visible on radar
+                  {radar.checkInExpiresAt
+                    ? ` · until ${new Date(radar.checkInExpiresAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
+                    : ""}
+                </Text>
+              </View>
+              <Pressable
+                onPress={handleCheckInPress}
+                disabled={radar.isWorking}
+                style={({ pressed }) => [
+                  styles.checkInButton,
+                  { borderColor: colors.border },
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                {radar.isWorking ? (
+                  <ActivityIndicator size="small" color={colors.primary} />
+                ) : (
+                  <Text style={[styles.checkInButtonText, { color: colors.foreground }]}>Check Out</Text>
+                )}
+              </Pressable>
+            </>
+          ) : (
+            <>
+              <Text style={[styles.checkInHint, { color: colors.muted }]}>
+                Check in to appear on the radar and see nearby users
+              </Text>
+              <Pressable
+                onPress={handleCheckInPress}
+                disabled={radar.isWorking}
+                style={({ pressed }) => [
+                  styles.checkInButton,
+                  { backgroundColor: colors.primary, borderColor: colors.primary },
+                  pressed && { opacity: 0.8 },
+                ]}
+              >
+                {radar.isWorking ? (
+                  <ActivityIndicator size="small" color="#fff" />
+                ) : (
+                  <Text style={[styles.checkInButtonText, { color: "#fff" }]}>Check In</Text>
+                )}
+              </Pressable>
+            </>
+          )}
+        </View>
 
       {/* Radar with pinch-to-zoom — fills all remaining space */}
       <View style={styles.radarContainer}>
@@ -837,14 +984,57 @@ export default function RadarScreen() {
           <View style={styles.emptyRadarState}>
             <Text style={[styles.emptyRadarEmoji]}>📡</Text>
             <Text style={[styles.emptyRadarTitle, { color: colors.foreground }]}>
-              No one here yet
+              {!demo && !radar.isCheckedIn
+                ? "Check in to see nearby users"
+                : discoveryLoading
+                  ? "Loading..."
+                  : "No one nearby"}
             </Text>
             <Text style={[styles.emptyRadarSubtitle, { color: colors.muted }]}>
-              Invite your friends to join Gusha and they&apos;ll appear on your radar!
+              {!demo && !radar.isCheckedIn
+                ? "Your location is shared only while you are checked in. You can check out anytime."
+                : "Try adjusting your distance filters or check in again later."}
             </Text>
           </View>
         )}
       </View>
+
+      {/* Map visibility consent */}
+      <Modal
+        visible={showConsentModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowConsentModal(false)}
+      >
+        <View style={styles.consentOverlay}>
+          <View style={[styles.consentCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
+            <IconSymbol name="location.circle.fill" size={48} color={colors.primary} />
+            <Text style={[styles.consentTitle, { color: colors.foreground }]}>
+              Show you on the radar?
+            </Text>
+            <Text style={[styles.consentBody, { color: colors.muted }]}>
+              Only when you check in, other users can see your approximate distance on the radar.
+              You can decline, check out anytime, and block any user.
+            </Text>
+            <Pressable
+              onPress={handleConsentAllow}
+              style={({ pressed }) => [
+                styles.consentPrimaryBtn,
+                { backgroundColor: colors.primary },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Text style={styles.consentPrimaryText}>Allow & Check In</Text>
+            </Pressable>
+            <Pressable
+              onPress={handleConsentDecline}
+              style={({ pressed }) => [styles.consentSecondaryBtn, pressed && { opacity: 0.7 }]}
+            >
+              <Text style={[styles.consentSecondaryText, { color: colors.muted }]}>Not Now</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
 
       {/* Popup Modal */}
       <UserPopup
@@ -853,6 +1043,7 @@ export default function RadarScreen() {
         onClose={() => setPopupUser(null)}
         onChat={handlePopupChat}
         onViewProfile={handlePopupViewProfile}
+        onBlock={handlePopupBlock}
         colors={colors}
       />
     </ScreenContainer>
@@ -1141,6 +1332,111 @@ const styles = StyleSheet.create({
   popupProfileBtnText: {
     fontSize: 16,
     fontWeight: "700",
+  },
+  popupBlockBtn: {
+    marginTop: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    paddingVertical: 12,
+    borderRadius: 24,
+    borderWidth: 1,
+  },
+  popupBlockText: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  checkInBar: {
+    marginHorizontal: 16,
+    marginBottom: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 14,
+    borderWidth: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  checkInInfo: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  checkInDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  checkInText: {
+    fontSize: 13,
+    fontWeight: "600",
+    flexShrink: 1,
+  },
+  checkInHint: {
+    flex: 1,
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  checkInButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    minWidth: 88,
+    alignItems: "center",
+  },
+  checkInButtonText: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  consentOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
+  },
+  consentCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 20,
+    borderWidth: 1,
+    padding: 24,
+    alignItems: "center",
+    gap: 12,
+  },
+  consentTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    textAlign: "center",
+    marginTop: 4,
+  },
+  consentBody: {
+    fontSize: 15,
+    lineHeight: 22,
+    textAlign: "center",
+    marginBottom: 8,
+  },
+  consentPrimaryBtn: {
+    width: "100%",
+    paddingVertical: 14,
+    borderRadius: 24,
+    alignItems: "center",
+  },
+  consentPrimaryText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "700",
+  },
+  consentSecondaryBtn: {
+    paddingVertical: 10,
+  },
+  consentSecondaryText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   // ── Empty Radar State ──
   emptyRadarState: {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useMemo } from "react";
 import {
   Text,
   View,
@@ -11,20 +11,17 @@ import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
+import { useDiscovery } from "@/hooks/use-discovery";
 import { GAMES, GameInfo } from "@/lib/game-data";
-import { DEMO_NEARBY_USERS } from "@/lib/demo-data";
-import { MOCK_NEARBY_USERS, NearbyUser } from "@/lib/mock-data";
+import { NearbyUser } from "@/lib/mock-data";
 import { UserAvatar } from "@/components/user-avatar";
-import { isAgeVerified, isOnboardingComplete } from "@/lib/storage";
+import { isExplicitDemoMode } from "@/lib/app-mode";
 import * as Haptics from "expo-haptics";
 
 const DARK_BG = "#1A1A2E";
 
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
+function isDemoMode(userLoginMethod?: string | null): boolean {
+  return isExplicitDemoMode(userLoginMethod);
 }
 
 // Memory Match (#FFD700) is bright — needs dark ink; everything else gets white
@@ -134,30 +131,18 @@ export default function GamesScreen() {
   const colors = useColors();
   const router = useRouter();
   const { user, isAuthenticated } = useAuth();
+  const demo = isDemoMode(user?.loginMethod);
+  const { users: nearbyUsers } = useDiscovery();
   const [selectedGame, setSelectedGame] = useState<GameInfo | null>(null);
   const [selectedOpponent, setSelectedOpponent] = useState<NearbyUser | null>(null);
 
-  // Match chat.tsx / explore.tsx: treat registered-but-not-OAuth'd local users
-  // (and the demo login) the same as web demo mode so they always see a
-  // populated opponent list. Games run locally vs AI so an empty list would
-  // otherwise feel like an incomplete/non-functional feature.
-  const [isLocalUser, setIsLocalUser] = useState(false);
-  useEffect(() => {
-    if (isAuthenticated) {
-      setIsLocalUser(false);
-      return;
-    }
-    Promise.all([isAgeVerified(), isOnboardingComplete()]).then(([age, onboarding]) => {
-      setIsLocalUser(age && onboarding);
-    });
-  }, [isAuthenticated]);
-
-  const demo = isDemoMode() || user?.loginMethod === "demo" || (isLocalUser && !isAuthenticated);
-  // Always fall back to the bundled sample opponents when we have no real
-  // ones — never present an empty/broken opponent selector.
-  const baseUsers = MOCK_NEARBY_USERS.length > 0 ? MOCK_NEARBY_USERS : DEMO_NEARBY_USERS;
-  const users = demo ? DEMO_NEARBY_USERS : baseUsers;
-  const onlineUsers = users.filter((u) => u.isOnline).slice(0, 10);
+  const users = useMemo(() => {
+    if (demo || isAuthenticated) return nearbyUsers;
+    return [];
+  }, [demo, isAuthenticated, nearbyUsers]);
+  const onlineUsers = demo
+    ? users.filter((u) => u.isOnline).slice(0, 10)
+    : users.slice(0, 10);
 
   const handleGameSelect = useCallback((game: GameInfo) => {
     if (Platform.OS !== "web") {
@@ -253,8 +238,18 @@ export default function GamesScreen() {
                 <Text style={styles.emptyOpponentsEmoji}>👀</Text>
                 <Text style={styles.emptyOpponentsTitle}>No one nearby right now</Text>
                 <Text style={styles.emptyOpponentsSubtitle}>
-                  Check back later or invite a friend
+                  Check in on the Radar tab so others can find you, then come back to play.
                 </Text>
+                <Pressable
+                  onPress={() => router.push("/(tabs)")}
+                  style={({ pressed }) => [
+                    styles.emptyRadarButton,
+                    { backgroundColor: colors.primary },
+                    pressed && { opacity: 0.8 },
+                  ]}
+                >
+                  <Text style={styles.emptyRadarButtonText}>Go to Radar</Text>
+                </Pressable>
                 <Pressable
                   onPress={handleBack}
                   style={({ pressed }) => [
@@ -429,8 +424,19 @@ const styles = StyleSheet.create({
     textAlign: "center",
     lineHeight: 20,
   },
-  emptyBackButton: {
+  emptyRadarButton: {
     marginTop: 16,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 999,
+  },
+  emptyRadarButtonText: {
+    color: "#fff",
+    fontWeight: "700",
+    fontSize: 15,
+  },
+  emptyBackButton: {
+    marginTop: 12,
     paddingHorizontal: 24,
     paddingVertical: 12,
     borderRadius: 999,

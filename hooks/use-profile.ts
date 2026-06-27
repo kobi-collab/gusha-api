@@ -110,7 +110,6 @@ export function useProfile() {
               order: p.order,
             })),
             interests: updated.tags.length > 0 ? updated.tags : updated.interests.length > 0 ? updated.interests : undefined,
-            isVisible: updated.isVisible ? "true" : "false",
             searchPreferences: {
               minAge: 18,
               maxAge: 45,

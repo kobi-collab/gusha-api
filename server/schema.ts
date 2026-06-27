@@ -60,7 +60,7 @@ export const userProfiles = mysqlTable("user_profiles", {
   /** Grindr-style extended profile fields stored as JSON */
   extendedProfile: json("extendedProfile").$type<ExtendedProfileDB>(),
   /** Whether the profile is visible to others on the radar */
-  isVisible: mysqlEnum("isVisible", ["true", "false"]).default("true").notNull(),
+  isVisible: mysqlEnum("isVisible", ["true", "false"]).default("false").notNull(),
   /** Last time the user was seen online (updated via WebSocket heartbeat) */
   lastSeen: timestamp("lastSeen"),
   /** Profile creation timestamp */
@@ -83,6 +83,8 @@ export type ExtendedProfileDB = {
   socialLinks?: { instagram?: string; spotify?: string };
   showAge?: boolean;
   incognito?: boolean;
+  mapVisibilityConsent?: boolean;
+  radarCheckInExpiresAt?: string | null;
 };
 
 /** Photo item shape stored in the gallery JSON column */

@@ -130,7 +130,6 @@ export async function clearAllStorage(): Promise<void> {
     LEGACY_KEYS.onboardingComplete,
   ]) {
     await deleteSecureKey(key);
-    console.log("[storage] clearAllStorage: deleted SecureStore", key);
   }
 
   try {
@@ -142,37 +141,55 @@ export async function clearAllStorage(): Promise<void> {
       KEYS.onboardingComplete,
       LEGACY_KEYS.ageVerified,
       LEGACY_KEYS.onboardingComplete,
+      "gusha_demo_intent",
+      "demo_radar_consent",
+      "demo_radar_checked_in",
+      "gusha_device_id",
     ]);
-    console.log("[storage] clearAllStorage: cleared AsyncStorage keys");
   } catch (err) {
     console.warn("[storage] clearAllStorage: failed to clear AsyncStorage keys", err);
   }
 
   if (typeof window !== "undefined" && window.localStorage) {
     window.localStorage.removeItem("demo_mode");
-    console.log("[storage] clearAllStorage: removed demo_mode from localStorage");
+    window.localStorage.removeItem("gusha_demo_intent");
   }
 
   try {
     await completeLogout();
-    console.log("[storage] clearAllStorage: session token and user info cleared");
   } catch (err) {
     console.warn("[storage] clearAllStorage: completeLogout failed", err);
   }
 
-  console.log("[storage] clearAllStorage: done");
+  const { resetGuestSessionAttempt } = await import("@/hooks/use-guest-session");
+  resetGuestSessionAttempt();
+  const { clearDemoRadarState } = await import("@/lib/demo-radar");
+  await clearDemoRadarState().catch(() => {});
+}
+
+/** Sign out of server session without wiping local registration data. */
+export async function signOutSession(): Promise<void> {
+  try {
+    const { logout } = await import("@/lib/_core/api");
+    await logout().catch(() => {});
+  } catch {
+    // Best-effort server logout
+  }
+  await completeLogout();
+  const { resetGuestSessionAttempt } = await import("@/hooks/use-guest-session");
+  resetGuestSessionAttempt();
+  const { clearDemoRadarState } = await import("@/lib/demo-radar");
+  await clearDemoRadarState().catch(() => {});
 }
 
 // ── Age Verification ──
 
 export async function isAgeVerified(): Promise<boolean> {
   if (_ageVerifiedCache !== null) {
-    console.log("[storage] isAgeVerified: cache hit →", _ageVerifiedCache);
     return _ageVerifiedCache;
   }
   try {
     const raw = await SecureStore.getItemAsync(KEYS.ageVerified);
-    console.log("[storage] isAgeVerified: SecureStore returned", raw);
     const value = raw === "true";
     _ageVerifiedCache = value;
     return value;
@@ -180,7 +197,6 @@ export async function isAgeVerified(): Promise<boolean> {
     console.warn("[storage] isAgeVerified: SecureStore failed, falling back to AsyncStorage", err);
     try {
       const raw = await AsyncStorage.getItem(KEYS.ageVerified);
-      console.log("[storage] isAgeVerified: AsyncStorage returned", raw);
       const value = raw === "true";
       _ageVerifiedCache = value;
       return value;
@@ -195,12 +211,10 @@ export async function isAgeVerified(): Promise<boolean> {
 
 export async function isOnboardingComplete(): Promise<boolean> {
   if (_onboardingCompleteCache !== null) {
-    console.log("[storage] isOnboardingComplete: cache hit →", _onboardingCompleteCache);
     return _onboardingCompleteCache;
   }
   try {
     const raw = await SecureStore.getItemAsync(KEYS.onboardingComplete);
-    console.log("[storage] isOnboardingComplete: SecureStore returned", raw);
     const value = raw === "true";
     _onboardingCompleteCache = value;
     return value;
@@ -208,7 +222,6 @@ export async function isOnboardingComplete(): Promise<boolean> {
     console.warn("[storage] isOnboardingComplete: SecureStore failed, falling back to AsyncStorage", err);
     try {
       const raw = await AsyncStorage.getItem(KEYS.onboardingComplete);
-      console.log("[storage] isOnboardingComplete: AsyncStorage returned", raw);
       const value = raw === "true";
       _onboardingCompleteCache = value;
       return value;
@@ -223,12 +236,10 @@ export async function setOnboardingComplete(): Promise<void> {
   _onboardingCompleteCache = true;
   try {
     await SecureStore.setItemAsync(KEYS.onboardingComplete, "true");
-    console.log("[storage] setOnboardingComplete: SecureStore saved");
   } catch (err) {
     console.warn("[storage] setOnboardingComplete: SecureStore failed, falling back to AsyncStorage", err);
     try {
       await AsyncStorage.setItem(KEYS.onboardingComplete, "true");
-      console.log("[storage] setOnboardingComplete: AsyncStorage saved");
     } catch (fallbackErr) {
       console.error("[storage] setOnboardingComplete: AsyncStorage fallback also failed", fallbackErr);
       throw fallbackErr;
@@ -239,12 +250,10 @@ export async function setOnboardingComplete(): Promise<void> {
 export async function clearOnboardingComplete(): Promise<void> {
   try {
     await SecureStore.deleteItemAsync(KEYS.onboardingComplete);
-    console.log("[storage] clearOnboardingComplete: SecureStore deleted key");
   } catch (err) {
     console.warn("[storage] clearOnboardingComplete: SecureStore delete failed, falling back to AsyncStorage remove", err);
     try {
       await AsyncStorage.removeItem(KEYS.onboardingComplete);
-      console.log("[storage] clearOnboardingComplete: AsyncStorage removed key");
     } catch (fallbackErr) {
       console.error("[storage] clearOnboardingComplete: AsyncStorage fallback also failed", fallbackErr);
       throw fallbackErr;
@@ -257,12 +266,10 @@ export async function setAgeVerified(verified: boolean): Promise<void> {
   if (!verified) {
     try {
       await SecureStore.deleteItemAsync(KEYS.ageVerified);
-      console.log("[storage] setAgeVerified: SecureStore deleted key");
     } catch (err) {
       console.warn("[storage] setAgeVerified: SecureStore delete failed, falling back to AsyncStorage remove", err);
       try {
         await AsyncStorage.removeItem(KEYS.ageVerified);
-        console.log("[storage] setAgeVerified: AsyncStorage removed key");
       } catch (fallbackErr) {
         console.error("[storage] setAgeVerified: AsyncStorage fallback also failed", fallbackErr);
         throw fallbackErr;
@@ -272,12 +279,10 @@ export async function setAgeVerified(verified: boolean): Promise<void> {
   }
   try {
     await SecureStore.setItemAsync(KEYS.ageVerified, "true");
-    console.log("[storage] setAgeVerified: SecureStore saved true");
   } catch (err) {
     console.warn("[storage] setAgeVerified: SecureStore failed, falling back to AsyncStorage", err);
     try {
       await AsyncStorage.setItem(KEYS.ageVerified, "true");
-      console.log("[storage] setAgeVerified: AsyncStorage saved true");
     } catch (fallbackErr) {
       console.error("[storage] setAgeVerified: AsyncStorage fallback also failed", fallbackErr);
       throw fallbackErr;

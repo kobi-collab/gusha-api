@@ -10,6 +10,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
+import { PRIVACY_EMAIL, SAFETY_EMAIL, SUPPORT_EMAIL } from "@/constants/contact";
 
 type DocKey = "terms" | "privacy" | "community" | "csae";
 
@@ -21,26 +22,32 @@ const DOCS: Record<DocKey, { title: string; body: string }> = {
 1. Eligibility
 You must be at least 18 years old to use Gusha. We reserve the right to suspend any account that misrepresents age or identity.
 
-2. Acceptable Use
+2. Your Account
+You create a profile by completing onboarding. This creates a guest account linked to your device. No separate sign-in is required to get started. Optional account linking may be offered in a future update.
+
+3. Acceptable Use
 You agree not to use Gusha to harass, threaten, impersonate, defraud, or harm any other person. You will not post sexually explicit content, hate speech, violence, or anything illegal. You will not attempt to disrupt or reverse-engineer the service.
 
-3. Your Content
+4. Your Content
 You retain ownership of the photos, text, and other content you submit. You grant Gusha a worldwide, royalty-free license to host, display, and transmit that content as needed to operate the service.
 
-4. Account Termination
+5. Subscriptions
+Gusha v1.0.2 is free. All features are available at no charge. Paid plans are not sold in this version.
+
+6. Account Termination
 We may suspend or terminate accounts that violate these Terms or our Community Guidelines, with or without notice. You may delete your account at any time from Settings.
 
-5. Disclaimers
+7. Disclaimers
 Gusha is provided "as is" without warranties of any kind. We do not guarantee uninterrupted service, accuracy of user content, or the outcome of any introductions made through the app.
 
-6. Limitation of Liability
+8. Limitation of Liability
 To the maximum extent permitted by law, Gusha is not liable for indirect, incidental, or consequential damages arising from your use of the service.
 
-7. Changes
+9. Changes
 We may update these Terms from time to time. Continued use of the service after a change constitutes acceptance of the updated Terms.
 
-8. Contact
-Questions about these Terms can be sent to support@gusha.app.`,
+10. Contact
+Questions about these Terms can be sent to ${SUPPORT_EMAIL}.`,
   },
   privacy: {
     title: "Privacy Policy",
@@ -50,7 +57,7 @@ Questions about these Terms can be sent to support@gusha.app.`,
 - Profile information you provide: display name, age, photos, bio, interests, and preferences.
 - Age verification: your date of birth, used only to confirm you are 18+.
 - Device information: app version, OS, language, and crash logs.
-- Approximate location, if and only if you grant permission, used to populate the discovery radar.
+- Approximate location, only when you manually check in to Radar and grant permission. You can check out at any time.
 
 2. How We Use Information
 We use your information to operate the app, match you with other users you might want to meet, prevent abuse, and improve product quality. We do not sell your personal information.
@@ -64,7 +71,7 @@ We use your information to operate the app, match you with other users you might
 Profile data is stored while your account is active. When you delete your account we remove your profile within 30 days, except where retention is required by law.
 
 5. Your Rights
-You can edit or delete your profile data, withdraw location permission, or delete your account from Settings. To request a copy of your data or exercise other rights granted by applicable law, contact privacy@gusha.app.
+You can edit or delete your profile data, withdraw location permission, or delete your account from Settings. To request a copy of your data or exercise other rights granted by applicable law, contact ${PRIVACY_EMAIL}.
 
 6. Children
 Gusha is not directed to anyone under 18 and we do not knowingly collect data from minors.
@@ -73,7 +80,7 @@ Gusha is not directed to anyone under 18 and we do not knowingly collect data fr
 We will notify users of material changes to this policy through the app.
 
 8. Contact
-Privacy questions: privacy@gusha.app.`,
+Privacy questions: ${PRIVACY_EMAIL}.`,
   },
   community: {
     title: "Community Guidelines",
@@ -95,7 +102,7 @@ Protect your safety.
 Do not share sensitive personal information (home address, financial information, government IDs) with people you have just met.
 
 Report problems.
-If you see content or behavior that breaks these rules, use the Report button on any profile or message. Our team reviews reports promptly.
+If you see content or behavior that breaks these rules, use the Report button on any profile or message. Our team reviews reports and may remove content or suspend accounts.
 
 Violations may result in warning, suspension, or permanent removal from Gusha.`,
   },
@@ -112,7 +119,7 @@ Prohibited conduct includes, without limitation:
 - Sexualised depictions of minors, including drawn, animated, or AI-generated content.
 
 Reporting
-If you encounter any content or behavior that exploits or endangers a minor, please report it immediately using the Report button in the app, or email safety@gusha.app. We review every report and act quickly.
+If you encounter any content or behavior that exploits or endangers a minor, please report it immediately using the Report button in the app, or email ${SAFETY_EMAIL}. We review every report and act quickly.
 
 Cooperation with authorities
 We report suspected CSAM to the National Center for Missing & Exploited Children (NCMEC) and equivalent authorities in other jurisdictions, and we cooperate with law enforcement investigations.

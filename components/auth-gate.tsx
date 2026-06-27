@@ -8,6 +8,12 @@ import {
   isOnboardingComplete,
   isRegistrationComplete,
 } from "@/lib/storage";
+import { isExplicitDemoMode } from "@/lib/app-mode";
+import {
+  isGuestSessionAttemptComplete,
+  isGuestSessionEstablishing,
+  subscribeGuestSessionStatus,
+} from "@/hooks/use-guest-session";
 
 // ── Module-level direct state ──
 // These are written synchronously by age-gate / onboarding immediately after
@@ -59,6 +65,13 @@ export function useAuthGate() {
   const [ageOk, setAgeOk] = useState<boolean>(() => _ageOkDirect ?? false);
   const [onboardingDone, setOnboardingDone] = useState<boolean>(() => _onboardingDoneDirect ?? false);
   const [registrationComplete, setRegistrationComplete] = useState(false);
+  const [guestSessionTick, setGuestSessionTick] = useState(0);
+
+  useEffect(() => {
+    return subscribeGuestSessionStatus(() => {
+      setGuestSessionTick((tick) => tick + 1);
+    });
+  }, []);
 
   useEffect(() => {
     _setAgeOkRef = setAgeOk;
@@ -115,7 +128,22 @@ export function useAuthGate() {
 
     if (onOAuth || onLegal) return;
 
+    const demo = isExplicitDemoMode(user?.loginMethod);
     const inRegistrationFlow = onWelcome || onAgeGate || onOnboarding;
+
+    // Registered users need a server session (except demo mode).
+    if (
+      registrationComplete &&
+      !isAuthenticated &&
+      !demo &&
+      isGuestSessionAttemptComplete() &&
+      !isGuestSessionEstablishing()
+    ) {
+      if (inAuthGroup) {
+        router.replace("/welcome");
+        return;
+      }
+    }
 
     // Main app is only reachable after the full Welcome → age → onboarding path.
     if (!registrationComplete) {
@@ -160,6 +188,7 @@ export function useAuthGate() {
     ageOk,
     onboardingDone,
     registrationComplete,
+    guestSessionTick,
   ]);
 
   return { user, loading: loading || !gateChecked, isAuthenticated };

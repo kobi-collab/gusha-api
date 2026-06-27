@@ -1,28 +1,17 @@
 import { useState, useCallback, useMemo } from "react";
 import {
   Text, View, FlatList, Pressable, StyleSheet,
-  ActivityIndicator, RefreshControl, Platform,
+  ActivityIndicator, RefreshControl,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { ScreenContainer } from "@/components/screen-container";
 import { UserAvatar } from "@/components/user-avatar";
-import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
-import {
-  TapItem, ProfileView, TAP_TYPES,
-  formatTime, formatDistance,
-} from "@/lib/mock-data";
+import { TapItem, ProfileView, TAP_TYPES, formatTime, formatDistance } from "@/lib/mock-data";
 import { DEMO_TAPS, DEMO_VIEWS } from "@/lib/demo-data";
-import { hasFeature, PlanId } from "@/lib/subscription";
-
-function isDemoMode(): boolean {
-  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    return window.localStorage.getItem("demo_mode") === "true";
-  }
-  return false;
-}
+import { isExplicitDemoMode } from "@/lib/app-mode";
 
 type TabMode = "taps" | "viewed";
 
@@ -50,25 +39,22 @@ function TapRow({ item, colors, onPress }: { item: TapItem; colors: any; onPress
   );
 }
 
-function ViewedRow({ item, colors, onPress, isBlurred }: { item: ProfileView; colors: any; onPress: () => void; isBlurred: boolean }) {
+function ViewedRow({ item, colors, onPress }: { item: ProfileView; colors: any; onPress: () => void }) {
   return (
     <Pressable
       onPress={onPress}
       style={({ pressed }) => [styles.row, { borderBottomColor: colors.border }, pressed && { opacity: 0.7 }]}
     >
-      <View style={isBlurred ? styles.blurredAvatar : undefined}>
-        <UserAvatar userId={item.viewerId} name={item.viewerName} photoUri={item.viewerPhoto || null} gallery={item.viewerPhoto ? [{ id: "g1", uri: item.viewerPhoto, isPrivate: false, order: 0 }] : []} size={52} isOnline={false} />
-      </View>
+      <UserAvatar userId={item.viewerId} name={item.viewerName} photoUri={item.viewerPhoto || null} gallery={item.viewerPhoto ? [{ id: "g1", uri: item.viewerPhoto, isPrivate: false, order: 0 }] : []} size={52} isOnline={false} />
       <View style={styles.rowInfo}>
         <Text style={[styles.rowName, { color: colors.foreground }]}>
-          {isBlurred ? "\u2022\u2022\u2022\u2022\u2022\u2022" : item.viewerName}
-          {!isBlurred && item.viewerAge ? `, ${item.viewerAge}` : ""}
+          {item.viewerName}
+          {item.viewerAge ? `, ${item.viewerAge}` : ""}
         </Text>
         <Text style={[styles.rowSub, { color: colors.muted }]}>
-          {isBlurred ? "Upgrade to Premium to see who viewed you" : `${formatDistance(item.viewerDistance)} · ${formatTime(item.viewedAt)}`}
+          {formatDistance(item.viewerDistance)} · {formatTime(item.viewedAt)}
         </Text>
       </View>
-      {isBlurred && <IconSymbol name="lock.fill" size={20} color={colors.muted} />}
     </Pressable>
   );
 }
@@ -76,9 +62,9 @@ function ViewedRow({ item, colors, onPress, isBlurred }: { item: ProfileView; co
 export default function TapsScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [tab, setTab] = useState<TabMode>("taps");
-  const demo = isDemoMode();
+  const demo = isExplicitDemoMode(user?.loginMethod);
 
   // Server queries (skip in demo mode)
   const tapsQuery = trpc.taps.received.useQuery(undefined, {
@@ -123,9 +109,6 @@ export default function TapsScreen() {
     }));
   }, [viewsQuery.data, demo]);
 
-  const currentPlan: PlanId = "free";
-  const canSeeViewers = hasFeature(currentPlan, "viewed_me");
-
   const unreadTaps = taps.filter((t) => !t.isRead).length;
 
   const onRefresh = useCallback(async () => {
@@ -165,7 +148,6 @@ export default function TapsScreen() {
           style={({ pressed }) => [styles.tabItem, tab === "viewed" && { borderBottomColor: colors.primary, borderBottomWidth: 2 }, pressed && { opacity: 0.7 }]}
         >
           <Text style={[styles.tabText, { color: tab === "viewed" ? colors.primary : colors.muted }]}>Viewed Me</Text>
-          {!canSeeViewers && <IconSymbol name="crown.fill" size={14} color={colors.warning} style={{ marginLeft: 4 }} />}
         </Pressable>
       </View>
 
@@ -211,13 +193,8 @@ export default function TapsScreen() {
             <ViewedRow
               item={item}
               colors={colors}
-              isBlurred={!canSeeViewers}
               onPress={() => {
-                if (canSeeViewers) {
-                  router.push({ pathname: "/user-detail", params: { userId: item.viewerId, userName: item.viewerName } });
-                } else {
-                  router.push("/subscription");
-                }
+                router.push({ pathname: "/user-detail", params: { userId: item.viewerId, userName: item.viewerName } });
               }}
             />
           )}
@@ -241,7 +218,6 @@ const styles = StyleSheet.create({
   rowName: { fontSize: 17, fontWeight: "600" },
   rowSub: { fontSize: 14, marginTop: 2 },
   tapEmoji: { fontSize: 28 },
-  blurredAvatar: { opacity: 0.3 },
   listContent: { paddingBottom: 20 },
   emptyState: { flex: 1, alignItems: "center", justifyContent: "center", padding: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },

@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { registerLegalRoutes } from "../legal-pages";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
 
@@ -55,9 +56,28 @@ async function startServer() {
   app.use(express.urlencoded({ limit: "50mb", extended: true }));
 
   registerOAuthRoutes(app);
+  registerLegalRoutes(app);
 
-  app.get("/api/health", (_req, res) => {
-    res.json({ ok: true, timestamp: Date.now() });
+  app.get("/api/health", async (_req, res) => {
+    let database = "unknown";
+    try {
+      const { getDb } = await import("../db");
+      const { sql } = await import("drizzle-orm");
+      const db = await getDb();
+      if (db) {
+        await db.execute(sql`SELECT 1`);
+        database = "ok";
+      } else {
+        database = "unconfigured";
+      }
+    } catch {
+      database = "error";
+    }
+    res.json({
+      ok: database === "ok",
+      database,
+      timestamp: Date.now(),
+    });
   });
 
   app.use(
@@ -69,13 +89,16 @@ async function startServer() {
   );
 
   const preferredPort = parseInt(process.env.PORT || "3000");
-  const port = await findAvailablePort(preferredPort);
+  const port =
+    process.env.NODE_ENV === "production"
+      ? preferredPort
+      : await findAvailablePort(preferredPort);
 
-  if (port !== preferredPort) {
+  if (process.env.NODE_ENV !== "production" && port !== preferredPort) {
     console.log(`Port ${preferredPort} is busy, using port ${port} instead`);
   }
 
-  server.listen(port, () => {
+  server.listen(port, "0.0.0.0", () => {
     console.log(`[api] server listening on port ${port}`);
   });
 }
