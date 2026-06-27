@@ -193,7 +193,7 @@ export default function GamesScreen() {
             ListHeaderComponent={
               <View style={styles.header}>
                 <Text style={styles.headerTitle}>Games</Text>
-                <Text style={styles.headerSubtitle}>Play together, connect better</Text>
+                <Text style={styles.headerSubtitle}>Practice icebreakers before you connect</Text>
               </View>
             }
             renderItem={({ item }) => (
@@ -228,9 +228,11 @@ export default function GamesScreen() {
               </Text>
             </View>
 
-            <Text style={styles.sectionTitle}>Choose your opponent</Text>
+            <Text style={styles.sectionTitle}>Start a practice game</Text>
             <Text style={styles.sectionSubtitle}>
-              {onlineUsers.length} people online nearby
+              {onlineUsers.length > 0
+                ? `${onlineUsers.length} people checked in nearby`
+                : "Check in on Radar first to see people nearby"}
             </Text>
 
             {onlineUsers.length === 0 ? (

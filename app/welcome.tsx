@@ -1,4 +1,4 @@
-import { Text, View, Pressable, StyleSheet, ActivityIndicator, Alert } from "react-native";
+import { Text, View, Pressable, StyleSheet, ActivityIndicator } from "react-native";
 import { Image } from "expo-image";
 import { useState, useEffect } from "react";
 import { useRouter } from "expo-router";
@@ -9,8 +9,7 @@ import {
   connectGuestSession,
   showGuestSessionFailureAlert,
 } from "@/hooks/use-guest-session";
-import { setDemoIntent } from "@/lib/app-intent";
-import { enterDemoMode } from "@/lib/demo-session";
+import { isProductionBuild } from "@/lib/production-build";
 
 export default function WelcomeScreen() {
   const colors = useColors();
@@ -42,28 +41,6 @@ export default function WelcomeScreen() {
     }
   };
 
-  const handleDemoMode = async () => {
-    setLoading(true);
-    try {
-      await enterDemoMode();
-      router.replace("/(tabs)");
-    } catch (err) {
-      console.error("[Welcome] Demo mode error:", err);
-      Alert.alert("Error", "Failed to start demo mode");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleTryDemo = async () => {
-    if (setupDone) {
-      await handleDemoMode();
-    } else {
-      await setDemoIntent();
-      router.push("/age-gate");
-    }
-  };
-
   return (
     <ScreenContainer edges={["top", "bottom", "left", "right"]}>
       <View style={styles.container}>
@@ -77,27 +54,27 @@ export default function WelcomeScreen() {
             Gusha
           </Text>
           <Text style={[styles.tagline, { color: colors.muted }]}>
-            Meet people. Break the ice with games.
+            Meet people nearby. Break the ice with games.
           </Text>
         </View>
 
         <View style={styles.featuresSection}>
           <FeatureRow
-            emoji="🎮"
-            title="Icebreaker Games"
-            description="Play fun games with people"
-            blockColor="#FF6B6B"
-          />
-          <FeatureRow
             emoji="📡"
             title="Radar"
-            description="See who's around you"
+            description="Check in to see who's around — you control when you're visible"
             blockColor="#D946A8"
           />
           <FeatureRow
+            emoji="🎮"
+            title="Icebreaker Games"
+            description="Practice fun games before you connect"
+            blockColor="#FF6B6B"
+          />
+          <FeatureRow
             emoji="💬"
-            title="Community Chat"
-            description="Connect and chat with new people"
+            title="Chat"
+            description="Message people you meet on Radar"
             blockColor="#FF6B35"
           />
         </View>
@@ -123,22 +100,8 @@ export default function WelcomeScreen() {
           </Pressable>
 
           <Text style={[styles.disclaimer, { color: colors.muted }]}>
-            No account sign-in required to get started.
+            Free to use. No account sign-in required.
           </Text>
-
-          <Pressable
-            onPress={handleTryDemo}
-            disabled={loading}
-            style={({ pressed }) => [
-              styles.demoButton,
-              { borderColor: colors.muted },
-              pressed && { opacity: 0.7 },
-            ]}
-          >
-            <Text style={[styles.demoButtonText, { color: colors.muted }]}>
-              Try Demo Mode
-            </Text>
-          </Pressable>
         </View>
       </View>
     </ScreenContainer>
@@ -247,19 +210,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginTop: 12,
     textAlign: "center",
-  },
-  demoButton: {
-    width: "100%",
-    paddingVertical: 14,
-    borderRadius: 28,
-    alignItems: "center",
-    justifyContent: "center",
-    minHeight: 50,
-    marginTop: 12,
-    borderWidth: 1,
-  },
-  demoButtonText: {
-    fontSize: 16,
-    fontWeight: "600",
   },
 });

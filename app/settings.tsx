@@ -35,6 +35,10 @@ export default function SettingsScreen() {
 
   // Incognito mode
   const incognitoQuery = trpc.profile.getIncognito.useQuery(undefined, { enabled: !!authUser });
+  const showOnlineQuery = trpc.profile.getShowOnline.useQuery(undefined, { enabled: !!authUser });
+  const setShowOnlineMutation = trpc.profile.setShowOnline.useMutation({
+    onSuccess: (data: { showOnline: boolean }) => setShowOnline(data.showOnline),
+  });
   const toggleIncognitoMutation = trpc.profile.toggleIncognito.useMutation({
     onSuccess: (data: any) => setIncognitoEnabled(data.incognito),
   });
@@ -45,6 +49,10 @@ export default function SettingsScreen() {
   useEffect(() => {
     if (incognitoQuery.data) setIncognitoEnabled(incognitoQuery.data.incognito);
   }, [incognitoQuery.data]);
+
+  useEffect(() => {
+    if (showOnlineQuery.data) setShowOnline(showOnlineQuery.data.showOnline);
+  }, [showOnlineQuery.data]);
 
   // Load notification preferences from server
   const notifPrefsQuery = trpc.notifications.getPreferences.useQuery(undefined, {
@@ -178,7 +186,15 @@ export default function SettingsScreen() {
         <View style={[styles.card, { backgroundColor: colors.surface, borderColor: colors.border }]}>
           <View style={styles.row}>
             <Text style={[styles.rowLabel, { color: colors.foreground }]}>Show Online Status</Text>
-            <Switch value={showOnline} onValueChange={setShowOnline} trackColor={{ false: colors.border, true: colors.primary }} thumbColor="#fff" />
+            <Switch
+              value={showOnline}
+              onValueChange={(val) => {
+                setShowOnline(val);
+                setShowOnlineMutation.mutate({ enabled: val });
+              }}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor="#fff"
+            />
           </View>
           <View style={[styles.divider, { backgroundColor: colors.border }]} />
           <View style={styles.row}>

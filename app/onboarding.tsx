@@ -162,6 +162,11 @@ export default function OnboardingScreen() {
 
       if (!done) {
         console.error("[Onboarding] isOnboardingComplete never returned true after 10 attempts");
+        Alert.alert(
+          "Setup Error",
+          "Could not save your profile. Please try again.",
+          [{ text: "OK" }]
+        );
         setLoading(false);
         return;
       }
@@ -194,6 +199,11 @@ export default function OnboardingScreen() {
       router.replace("/(tabs)");
     } catch (err) {
       console.error("[Onboarding] save error:", err);
+      Alert.alert(
+        "Setup Error",
+        "Something went wrong while saving your profile. Please try again.",
+        [{ text: "OK" }]
+      );
       setLoading(false);
     }
   };

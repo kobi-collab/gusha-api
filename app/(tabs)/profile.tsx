@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   Text,
@@ -17,10 +17,7 @@ import { ScreenContainer } from "@/components/screen-container";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { useColors } from "@/hooks/use-colors";
 import { UserProfile, DEFAULT_PROFILE } from "@/lib/mock-data";
-import { loadProfile, saveProfile, clearAllStorage } from "@/lib/storage";
-import { resetAuthState } from "@/components/auth-gate";
-import { startOAuthLogin, isOAuthConfigured } from "@/constants/oauth";
-import { useAuth } from "@/hooks/use-auth";
+import { loadProfile, saveProfile } from "@/lib/storage";
 import { UserAvatar } from "@/components/user-avatar";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
@@ -38,7 +35,6 @@ const INTEREST_OPTIONS = [
 export default function ProfileScreen() {
   const colors = useColors();
   const router = useRouter();
-  const { isAuthenticated } = useAuth();
   const [profile, setProfile] = useState<UserProfile>({ ...DEFAULT_PROFILE });
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -107,26 +103,6 @@ export default function ProfileScreen() {
     }
   }, [editName, editAge, editBio, editInterests, profile]);
 
-  // Hidden triple-tap on title → wipe storage and restart registration flow
-  const tapCountRef = useRef(0);
-  const tapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  const handleTitleTap = useCallback(() => {
-    tapCountRef.current += 1;
-    if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-    tapTimerRef.current = setTimeout(() => {
-      tapCountRef.current = 0;
-    }, 600);
-    if (tapCountRef.current >= 3) {
-      tapCountRef.current = 0;
-      if (tapTimerRef.current) clearTimeout(tapTimerRef.current);
-      resetAuthState();
-      clearAllStorage().then(() => {
-        router.replace("/age-gate");
-      });
-    }
-  }, [router]);
-
   const toggleInterest = (interest: string) => {
     setEditInterests((prev) =>
       prev.includes(interest)
@@ -140,9 +116,7 @@ export default function ProfileScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent}>
         {/* Header */}
         <View style={styles.header}>
-          <Pressable onPress={handleTitleTap} hitSlop={8}>
-            <Text style={[styles.title, { color: colors.foreground }]}>My Profile</Text>
-          </Pressable>
+          <Text style={[styles.title, { color: colors.foreground }]}>My Profile</Text>
           <View style={styles.headerButtons}>
             <Pressable
               onPress={isEditing ? handleSave : startEditing}
@@ -170,21 +144,6 @@ export default function ProfileScreen() {
             )}
           </View>
         </View>
-
-        {!isAuthenticated && isOAuthConfigured() && (
-          <Pressable
-            onPress={() => startOAuthLogin()}
-            style={({ pressed }) => [
-              styles.linkAccountBtn,
-              { backgroundColor: colors.surface, borderColor: colors.primary },
-              pressed && { opacity: 0.8 },
-            ]}
-          >
-            <Text style={[styles.linkAccountText, { color: colors.primary }]}>
-              Link Full Account (optional)
-            </Text>
-          </Pressable>
-        )}
 
         {/* Avatar — tappable to go to photo management */}
         <View style={styles.avatarSection}>

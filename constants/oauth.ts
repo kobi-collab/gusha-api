@@ -102,6 +102,8 @@ export const getLoginUrl = () => {
  * @returns Always null, the callback is handled via deep link.
  */
 export function isOAuthConfigured(): boolean {
+  // No third-party sign-in in App Store builds (requires Sign in with Apple parity).
+  if (!__DEV__) return false;
   return Boolean(OAUTH_PORTAL_URL && APP_ID);
 }
 

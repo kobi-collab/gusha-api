@@ -94,9 +94,17 @@ export function useOnlineStatus(userIds: number[]) {
 
   // Update cache from server response
   useEffect(() => {
-    if (statusQuery.data && Array.isArray(statusQuery.data)) {
-      for (const s of statusQuery.data as Array<{ userId: number; isOnline: boolean; lastSeen?: number }>) {
+    const data = statusQuery.data;
+    if (!data) return;
+    if (Array.isArray(data)) {
+      for (const s of data as Array<{ userId: number; isOnline: boolean; lastSeen?: number }>) {
         updateCache(s.userId, { isOnline: s.isOnline, lastSeen: s.lastSeen });
+      }
+      return;
+    }
+    if (typeof data === "object") {
+      for (const [id, isOnline] of Object.entries(data as Record<string, boolean>)) {
+        updateCache(Number(id), { isOnline: Boolean(isOnline) });
       }
     }
   }, [statusQuery.data]);

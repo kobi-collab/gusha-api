@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
 
@@ -12,6 +13,22 @@ function generateUuid(): string {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+async function readAsyncDeviceId(): Promise<string | null> {
+  try {
+    return await AsyncStorage.getItem(DEVICE_ID_KEY);
+  } catch {
+    return null;
+  }
+}
+
+async function writeAsyncDeviceId(id: string): Promise<void> {
+  try {
+    await AsyncStorage.setItem(DEVICE_ID_KEY, id);
+  } catch {
+    // best-effort fallback persistence
+  }
 }
 
 /**
@@ -31,8 +48,13 @@ export async function getOrCreateDeviceId(): Promise<string> {
     if (existing) return existing;
     const id = generateUuid();
     await SecureStore.setItemAsync(DEVICE_ID_KEY, id);
+    await writeAsyncDeviceId(id);
     return id;
   } catch {
-    return generateUuid();
+    const existing = await readAsyncDeviceId();
+    if (existing) return existing;
+    const id = generateUuid();
+    await writeAsyncDeviceId(id);
+    return id;
   }
 }

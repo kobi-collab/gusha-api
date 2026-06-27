@@ -96,6 +96,24 @@ export const appRouter = router({
       const ext = (profile.extendedProfile as any) || {};
       return { incognito: ext.incognito === true };
     }),
+
+    /** Whether others can see this user as online */
+    getShowOnline: protectedProcedure.query(async ({ ctx }) => {
+      const profile = await db.getProfile(ctx.user.id);
+      if (!profile) return { showOnline: true };
+      const ext = (profile.extendedProfile as Record<string, unknown>) || {};
+      return { showOnline: ext.showOnline !== false };
+    }),
+
+    setShowOnline: protectedProcedure
+      .input(z.object({ enabled: z.boolean() }))
+      .mutation(async ({ ctx, input }) => {
+        const profile = await db.getProfile(ctx.user.id);
+        const ext = { ...((profile?.extendedProfile as Record<string, unknown>) || {}) };
+        ext.showOnline = input.enabled;
+        await db.upsertProfile(ctx.user.id, { extendedProfile: ext } as any);
+        return { showOnline: input.enabled };
+      }),
   }),
 
   // ── Discovery (Grid) ──
@@ -124,8 +142,18 @@ export const appRouter = router({
         latitude: z.string(),
         longitude: z.string(),
       }))
-      .mutation(({ ctx, input }) => {
-        return db.radarCheckIn(ctx.user.id, input.latitude, input.longitude);
+      .mutation(async ({ ctx, input }) => {
+        try {
+          return await db.radarCheckIn(ctx.user.id, input.latitude, input.longitude);
+        } catch (error) {
+          if (error instanceof Error && error.message.includes("consent")) {
+            throw new TRPCError({
+              code: "PRECONDITION_FAILED",
+              message: error.message,
+            });
+          }
+          throw error;
+        }
       }),
 
     /** Manual check-out — hide from radar immediately */
@@ -427,7 +455,7 @@ export const appRouter = router({
     /** Get online status for a list of user IDs */
     status: protectedProcedure
       .input(z.object({ userIds: z.array(z.number()).max(200) }))
-      .query(({ input }) => {
+      .query(async ({ input }) => {
         return ws.getOnlineStatuses(input.userIds);
       }),
   }),

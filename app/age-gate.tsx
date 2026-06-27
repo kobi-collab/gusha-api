@@ -20,6 +20,7 @@ import { setAgeVerified, saveProfile, setOnboardingComplete } from "@/lib/storag
 import { setAgeOkDirect, setOnboardingDoneDirect } from "@/components/auth-gate";
 import { consumeDemoIntent } from "@/lib/app-intent";
 import { enterDemoMode } from "@/lib/demo-session";
+import { isProductionBuild } from "@/lib/production-build";
 import { DEFAULT_PROFILE } from "@/lib/mock-data";
 
 export default function AgeGateScreen() {
@@ -90,7 +91,7 @@ export default function AgeGateScreen() {
       await setAgeVerified(true);
       setAgeOkDirect(true);
 
-      if (await consumeDemoIntent()) {
+      if (!isProductionBuild() && (await consumeDemoIntent())) {
         await saveProfile({
           ...DEFAULT_PROFILE,
           name: "Demo User",

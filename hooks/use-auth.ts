@@ -53,14 +53,48 @@ export function useAuth(options?: UseAuthOptions) {
           setUser(null);
         }
       } else {
-        // Native platform: use stored user info
+        // Native: validate cached session against the server when possible
         console.log("[useAuth] Native: Checking stored user info...");
         const cachedUser = await Auth.getUserInfo();
-        if (cachedUser) {
-          console.log("[useAuth] Native: User found in SecureStore:", cachedUser.name);
-          setUser(cachedUser);
-        } else {
+        const token = await Auth.getSessionToken();
+
+        if (!cachedUser) {
           console.log("[useAuth] Native: No stored user info");
+          setUser(null);
+          return;
+        }
+
+        const isDemo =
+          cachedUser.loginMethod === "demo" || token === "demo-session-token";
+        if (isDemo) {
+          console.log("[useAuth] Native: Demo session");
+          setUser(cachedUser);
+          return;
+        }
+
+        if (!token) {
+          console.log("[useAuth] Native: Cached user without token — clearing");
+          await Auth.completeLogout();
+          setUser(null);
+          return;
+        }
+
+        const serverUser = await Api.getMe();
+        if (serverUser) {
+          const u: Auth.User = {
+            id: serverUser.id,
+            openId: serverUser.openId,
+            name: serverUser.name,
+            email: serverUser.email,
+            loginMethod: serverUser.loginMethod,
+            lastSignedIn: new Date(serverUser.lastSignedIn),
+          };
+          await Auth.setUserInfo(u);
+          setUser(u);
+          console.log("[useAuth] Native: Session validated:", u.name);
+        } else {
+          console.log("[useAuth] Native: Invalid session — clearing");
+          await Auth.completeLogout();
           setUser(null);
         }
       }

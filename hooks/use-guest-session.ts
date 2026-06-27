@@ -19,6 +19,8 @@ const listeners = new Set<GuestSessionListener>();
 let _guestSessionAttempted = false;
 let _guestSessionEstablishing = false;
 let _guestSessionAttemptComplete = false;
+/** After explicit sign-out, skip auto-connect until the user taps Continue. */
+let _skipAutoGuestSession = false;
 
 function notifyGuestSessionStatus() {
   listeners.forEach((listener) => listener());
@@ -43,8 +45,21 @@ export function isGuestSessionAttemptComplete(): boolean {
   return _guestSessionAttemptComplete;
 }
 
-/** Reset after sign-out so the next launch can re-establish a guest session. */
+/** Block auto guest connect after sign-out (user must tap Continue on welcome). */
+export function pauseAutoGuestSession(): void {
+  _skipAutoGuestSession = true;
+  _guestSessionAttempted = true;
+  setGuestSessionFlags(false, true);
+}
+
+/** Re-enable auto guest connect (e.g. after successful Continue). */
+export function resumeAutoGuestSession(): void {
+  _skipAutoGuestSession = false;
+}
+
+/** Reset after full app data clear so the next launch can establish a guest session. */
 export function resetGuestSessionAttempt(): void {
+  _skipAutoGuestSession = false;
   _guestSessionAttempted = false;
   setGuestSessionFlags(false, false);
 }
@@ -185,7 +200,12 @@ export async function ensureGuestSession(): Promise<GuestSessionResult> {
 export async function connectGuestSession(): Promise<GuestSessionResult> {
   setGuestSessionFlags(true, false);
   try {
-    return await ensureGuestSession();
+    const result = await ensureGuestSession();
+    if (result.ok) {
+      resumeAutoGuestSession();
+      _guestSessionAttempted = true;
+    }
+    return result;
   } finally {
     setGuestSessionFlags(false, true);
   }
@@ -215,7 +235,7 @@ export function useGuestSession() {
   }, [refetch, syncLocalProfile]);
 
   useEffect(() => {
-    if (loading || isAuthenticated || _guestSessionAttempted) return;
+    if (loading || isAuthenticated || _guestSessionAttempted || _skipAutoGuestSession) return;
     _guestSessionAttempted = true;
     (async () => {
       if (await isRegistrationComplete()) {

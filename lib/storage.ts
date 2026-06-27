@@ -161,6 +161,9 @@ export async function clearAllStorage(): Promise<void> {
     console.warn("[storage] clearAllStorage: completeLogout failed", err);
   }
 
+  const { clearDemoMode } = await import("@/lib/demo-session");
+  await clearDemoMode().catch(() => {});
+
   const { resetGuestSessionAttempt } = await import("@/hooks/use-guest-session");
   resetGuestSessionAttempt();
   const { clearDemoRadarState } = await import("@/lib/demo-radar");
@@ -176,8 +179,10 @@ export async function signOutSession(): Promise<void> {
     // Best-effort server logout
   }
   await completeLogout();
-  const { resetGuestSessionAttempt } = await import("@/hooks/use-guest-session");
-  resetGuestSessionAttempt();
+  const { clearDemoMode } = await import("@/lib/demo-session");
+  await clearDemoMode().catch(() => {});
+  const { pauseAutoGuestSession } = await import("@/hooks/use-guest-session");
+  pauseAutoGuestSession();
   const { clearDemoRadarState } = await import("@/lib/demo-radar");
   await clearDemoRadarState().catch(() => {});
 }

@@ -1,5 +1,8 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Platform } from "react-native";
 import * as Auth from "@/lib/_core/auth";
+
+const DEMO_MODE_KEY = "demo_mode";
 
 /** Start a local demo session (no server required). */
 export async function enterDemoMode(): Promise<void> {
@@ -13,7 +16,18 @@ export async function enterDemoMode(): Promise<void> {
   };
   await Auth.setUserInfo(demoUser);
   if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
-    window.localStorage.setItem("demo_mode", "true");
+    window.localStorage.setItem(DEMO_MODE_KEY, "true");
+  } else {
+    await AsyncStorage.setItem(DEMO_MODE_KEY, "true").catch(() => {});
   }
   await Auth.completeLogin("demo-session-token", demoUser);
+}
+
+/** Clear demo mode flags (e.g. on sign out). */
+export async function clearDemoMode(): Promise<void> {
+  if (Platform.OS === "web" && typeof window !== "undefined" && window.localStorage) {
+    window.localStorage.removeItem(DEMO_MODE_KEY);
+  } else {
+    await AsyncStorage.removeItem(DEMO_MODE_KEY).catch(() => {});
+  }
 }

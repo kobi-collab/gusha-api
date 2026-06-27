@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { Platform } from "react-native";
 import { useAuth } from "@/hooks/use-auth";
 import { trpc } from "@/lib/trpc";
 import {
@@ -12,25 +11,20 @@ import { isExplicitDemoMode } from "@/lib/app-mode";
 import { useDemoRadarStatus } from "@/lib/demo-radar";
 import { bearingDegrees, distanceMeters, parseCoord } from "@/lib/geo";
 
-function isDemoMode(): boolean {
-  return isExplicitDemoMode();
-}
-
 type ViewerLocation = {
   latitude: string | null;
   longitude: string | null;
 };
 
 /**
- * Hook that loads nearby profiles from the server.
- * Demo data is only used in explicit web demo mode — never in production native builds.
+ * Loads nearby profiles from the server, or demo data in explicit demo mode.
  */
 export function useDiscovery(
   prefs: SearchPreferences = DEFAULT_SEARCH_PREFERENCES,
   viewerLocation: ViewerLocation = { latitude: null, longitude: null }
 ) {
-  const { isAuthenticated } = useAuth();
-  const demo = isDemoMode();
+  const { isAuthenticated, user } = useAuth();
+  const demo = isExplicitDemoMode(user?.loginMethod);
   const demoRadar = useDemoRadarStatus();
 
   const nearbyQuery = trpc.discover.nearby.useQuery(
@@ -43,6 +37,21 @@ export function useDiscovery(
     }
   );
 
+  const nearbyUserIds = useMemo(() => {
+    if (demo || !nearbyQuery.data) return [];
+    return nearbyQuery.data
+      .map((p: { userId?: number; id?: number }) => Number(p.userId ?? p.id))
+      .filter((id: number) => Number.isFinite(id) && id > 0);
+  }, [demo, nearbyQuery.data]);
+
+  const onlineQuery = trpc.online.status.useQuery(
+    { userIds: nearbyUserIds },
+    {
+      enabled: isAuthenticated && !demo && nearbyUserIds.length > 0,
+      staleTime: 30_000,
+    }
+  );
+
   const viewerLat = parseCoord(viewerLocation.latitude);
   const viewerLon = parseCoord(viewerLocation.longitude);
 
@@ -52,9 +61,31 @@ export function useDiscovery(
     }
     if (!nearbyQuery.data || nearbyQuery.data.length === 0) return [];
 
-    return nearbyQuery.data.map((p: any) => {
-      const lat = parseCoord(p.latitude);
-      const lon = parseCoord(p.longitude);
+    const onlineMap = onlineQuery.data as Record<number, boolean> | undefined;
+
+    return nearbyQuery.data.map((p: {
+      userId?: number;
+      id?: number;
+      displayName?: string;
+      age?: number;
+      showAge?: boolean;
+      bio?: string;
+      gallery?: { uri: string }[];
+      updatedAt: string;
+      height?: number | null;
+      bodyType?: string | null;
+      relationshipStatus?: string | null;
+      genderIdentity?: string | null;
+      pronouns?: string | null;
+      lookingFor?: string[];
+      meetAt?: string[];
+      acceptingNSFW?: string | null;
+      mood?: string | null;
+      interests?: string[];
+    }) => {
+      const userId = Number(p.userId ?? p.id);
+      const lat = parseCoord((p as { latitude?: string }).latitude);
+      const lon = parseCoord((p as { longitude?: string }).longitude);
       let distance = 0;
       let bearing = 0;
       if (viewerLat != null && viewerLon != null && lat != null && lon != null) {
@@ -63,7 +94,7 @@ export function useDiscovery(
       }
 
       return {
-        id: String(p.userId ?? p.id),
+        id: String(userId),
         displayName: p.displayName || "Anonymous",
         age: p.age || 0,
         showAge: p.showAge ?? true,
@@ -72,7 +103,7 @@ export function useDiscovery(
         gallery: p.gallery || [],
         distance,
         bearing,
-        isOnline: false,
+        isOnline: onlineMap?.[userId] ?? false,
         lastSeen: new Date(p.updatedAt).getTime(),
         height: p.height ?? null,
         bodyType: p.bodyType ?? null,
@@ -83,14 +114,14 @@ export function useDiscovery(
         meetAt: p.meetAt ?? [],
         acceptingNSFW: p.acceptingNSFW ?? null,
         tags: p.interests || [],
-        socialLinks: p.socialLinks ?? {},
+        socialLinks: (p as { socialLinks?: Record<string, string> }).socialLinks ?? {},
         mood: p.mood ?? null,
         interests: p.interests || [],
         bio: p.bio || "",
         name: p.displayName || "",
       };
     });
-  }, [nearbyQuery.data, demo, demoRadar.isCheckedIn, viewerLat, viewerLon]);
+  }, [nearbyQuery.data, demo, demoRadar.isCheckedIn, viewerLat, viewerLon, onlineQuery.data]);
 
   const filteredUsers = useMemo(() => {
     return users.filter((user) => {

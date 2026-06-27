@@ -3,7 +3,11 @@
  * Pre-TestFlight / pre-submit production checks.
  * Usage: node scripts/verify-production.mjs [baseUrl]
  */
-const baseUrl = (process.argv[2] || process.env.EXPO_PUBLIC_API_BASE_URL || "https://gusha-api.onrender.com").replace(/\/$/, "");
+const PRODUCTION_URL = "https://gusha-api.onrender.com";
+const envUrl = process.env.EXPO_PUBLIC_API_BASE_URL;
+const resolvedEnvUrl =
+  envUrl && !envUrl.includes("manus.space") ? envUrl : null;
+const baseUrl = (process.argv[2] || resolvedEnvUrl || PRODUCTION_URL).replace(/\/$/, "");
 
 const checks = [];
 

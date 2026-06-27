@@ -33,13 +33,27 @@ export function isUserOnline(userId: number): boolean {
   return !!sockets && sockets.size > 0;
 }
 
-/** Get online status for multiple users */
-export function getOnlineStatuses(userIds: number[]): Record<number, boolean> {
+/** Get online status for multiple users (respects show-online privacy). */
+export async function getOnlineStatuses(userIds: number[]): Promise<Record<number, boolean>> {
   const result: Record<number, boolean> = {};
   for (const id of userIds) {
-    result[id] = isUserOnline(id);
+    if (!isUserOnline(id)) {
+      result[id] = false;
+      continue;
+    }
+    result[id] = await userShowsOnlineStatus(id);
   }
   return result;
+}
+
+async function userShowsOnlineStatus(userId: number): Promise<boolean> {
+  try {
+    const profile = await db.getProfile(userId);
+    const ext = (profile?.extendedProfile as Record<string, unknown>) || {};
+    return ext.showOnline !== false;
+  } catch {
+    return true;
+  }
 }
 
 /** Send a message to a specific user (all their connected devices) */
@@ -156,8 +170,10 @@ export function setupWebSocket(server: HttpServer): WebSocketServer {
 
     console.log(`[WebSocket] User ${userId} connected (${connectedUsers.get(userId)!.size} devices)`);
 
-    // Notify others this user came online
-    broadcastStatusChange(userId, true);
+    // Notify others this user came online (if they allow it)
+    if (await userShowsOnlineStatus(userId)) {
+      broadcastStatusChange(userId, true);
+    }
 
     // Update last seen
     updateLastSeen(userId);
@@ -270,11 +286,12 @@ function handleStopTyping(socket: AuthenticatedSocket, data: WsMessage): void {
 function handleGetOnlineStatus(socket: AuthenticatedSocket, data: WsMessage): void {
   const userIds = data.userIds as number[];
   if (!Array.isArray(userIds)) return;
-  const statuses = getOnlineStatuses(userIds);
-  socket.send(JSON.stringify({
-    type: "online_status",
-    statuses,
-  }));
+  void getOnlineStatuses(userIds).then((statuses) => {
+    socket.send(JSON.stringify({
+      type: "online_status",
+      statuses,
+    }));
+  });
 }
 
 function broadcastStatusChange(userId: number, isOnline: boolean): void {

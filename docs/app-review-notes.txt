@@ -1,38 +1,52 @@
-Gusha v1.0.2 (build 10016) — App Review Notes
+Gusha v1.0.2 (build 10018) — App Review Notes
 ================================================
 
-HOW TO TEST (please use this path, not Demo):
-1. Tap "Get Started" (NOT "Try Demo Mode")
-2. Enter date of birth — must be 18+
-3. Complete onboarding (name, identity, preferences)
-4. You will enter the main app automatically
+IMPORTANT — HOW TO TEST (required path):
+1. Tap "Get Started" on the welcome screen
+2. Enter date of birth — must be 18 or older
+3. Complete onboarding (name, gender identity, optional preferences)
+4. You will enter the main app automatically (guest session — no Apple ID or sign-in required)
 
-Note: First launch may take up to 30 seconds while the server wakes up. If you see "Connection Problem", tap "Try Again" once.
+If you see "Connection Problem" on first launch, wait a few seconds and tap "Try Again" once.
+
+There is no Demo Mode button in this build. Please use Get Started only.
+
+GUEST / SIGN-IN (Guideline 5.1.1):
+- No Apple ID, email, or third-party sign-in is required
+- A guest profile is created automatically after onboarding
+- Sign Out: Profile → Settings → Sign Out (returns to Welcome; tap Continue to reconnect)
 
 RADAR / LOCATION (Guideline 5.1.2):
-- Location is When-In-Use only
-- Users appear on the radar ONLY after tapping "Check In" and accepting the consent dialog
+- Location permission is When-In-Use only (NSLocationWhenInUseUsageDescription)
+- Users are NOT visible on the map by default
+- User must tap "Check In" and accept the map visibility consent dialog first
+- "Not Now" declines consent — user stays hidden
 - Users can "Check Out" anytime from the Radar tab
-- The app checks out automatically when sent to background
+- App checks out automatically when sent to background
+- Block: tap a user dot on Radar → Block, or open a profile → Block / Report
 
 IN-APP PURCHASES (Guideline 3.1.1):
 - v1.0.2 has NO in-app purchases
-- All features are free in this version
-- No subscription products are active
+- All features are free
+- No subscription or IAP products are configured in App Store Connect for this version
 
-ACCOUNT DELETION (Guideline 5.1.1v):
+ACCOUNT DELETION (Guideline 5.1.1(v)):
 Profile tab → Settings (gear icon) → Delete Account → type DELETE to confirm
+Web: https://gusha-api.onrender.com/delete-account
 
-BLOCK / REPORT (Guideline 1.2):
-- Open any user profile → Block or Report
-- Community Guidelines and Child Safety Policy are in Settings → Legal
+BLOCK / REPORT / SAFETY (Guideline 1.2):
+- Block or Report from any user profile
+- Blocked Users list: Settings → Blocked Users
+- Community Guidelines: Settings → Legal
 
-OPTIONAL ACCOUNT LINKING:
-- Not required to use the app
-- Guest profile works without sign-in
+GAMES:
+- Icebreaker games are solo practice (AI opponent) — not live multiplayer in v1.0.2
+- Optional: pick someone from Radar as a visual practice partner
+
+PHOTO LIBRARY (Guideline 5.1.1):
+Used only so users can add profile photos and send images in chat (e.g. choose a gallery photo as profile picture).
 
 Support: support@gusha.app
 Privacy: privacy@gusha.app
-Privacy Policy URL: https://gusha-api.onrender.com/privacy
-Terms URL: https://gusha-api.onrender.com/terms
-Delete Account URL: https://gusha-api.onrender.com/delete-account
+Privacy Policy: https://gusha-api.onrender.com/privacy
+Terms: https://gusha-api.onrender.com/terms
