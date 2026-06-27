@@ -73,7 +73,24 @@ async function run() {
     checks.push({ name: "Privacy policy (/privacy)", pass: false, detail: String(e) });
   }
 
-  // 4. Delete account page
+  // 4. Terms of service
+  try {
+    const res = await fetch(`${baseUrl}/terms`);
+    const html = await res.text();
+    const pass =
+      res.ok &&
+      html.includes("Terms of Service") &&
+      html.includes("office@tgbc.co.il");
+    checks.push({
+      name: "Terms of service (/terms)",
+      pass,
+      detail: pass ? "updated emails found" : `status ${res.status}`,
+    });
+  } catch (e) {
+    checks.push({ name: "Terms of service (/terms)", pass: false, detail: String(e) });
+  }
+
+  // 5. Delete account page
   try {
     const res = await fetch(`${baseUrl}/delete-account`);
     checks.push({

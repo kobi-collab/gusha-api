@@ -55,7 +55,7 @@ Questions about these Terms can be sent to ${SUPPORT_EMAIL}.`,
 
 1. Information We Collect
 - Profile information you provide: display name, age, photos, bio, interests, and preferences.
-- Age verification: your date of birth, used only to confirm you are 18+.
+- Age verification: checked on your device to confirm you are 18+. We do not store your full date of birth on our servers.
 - Device information: app version, OS, language, and crash logs.
 - Approximate location, only when you manually check in to Radar and grant permission. You can check out at any time.
 

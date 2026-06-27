@@ -112,12 +112,13 @@ const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
 <h2>1. Information Collected</h2>
 <p>We collect the following types of information:</p>
 <p><strong>Personal Information:</strong> Display name, age, gender identity, interests, profile pictures, and other profile fields you choose to provide.</p>
+<p><strong>Age Verification:</strong> You enter your date of birth in the app to confirm you are 18+. This check runs on your device; we do not store your full date of birth on our servers.</p>
 <p><strong>Location Information:</strong> Approximate location, collected only when you manually check in to the Radar and grant location permission. You can check out at any time.</p>
 <p><strong>Usage Information:</strong> Login times, profile views, messages, favorites, and in-app actions needed to operate the service.</p>
 <p><strong>Device Information:</strong> IP address, device type, operating system, and crash reports.</p>
 <p><strong>Payment Information:</strong> Not collected in the current free version of Gusha. If paid plans are introduced in a future version, purchases will be processed by Apple or Google; we will not receive your full payment card details.</p>
 <p><strong>Purposes:</strong> Profile creation, service operation, matching, security, improving user experience, fraud prevention, legal compliance.</p>
-<p><strong>Legal Basis for Processing (EU/UK Users):</strong> We process your data based on: (a) Performance of a contract with you; (b) Explicit consent (regarding sexual orientation, precise location, and advertising cookies); (c) Legitimate interest (for platform security, fraud prevention, and service improvement); (d) Legal obligation.</p>
+<p><strong>Legal Basis for Processing (EU/UK Users):</strong> We process your data based on: (a) Performance of a contract with you; (b) Explicit consent (regarding sexual orientation and precise location when you check in to Radar); (c) Legitimate interest (for platform security, fraud prevention, and service improvement); (d) Legal obligation.</p>
 
 <h2>2. Sensitive Information</h2>
 <p><strong>Gender identity and profile preferences</strong> – Processed to operate your profile and discovery features, based on information you provide.</p>
@@ -155,14 +156,8 @@ const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
 <h2>6. Data Transfer Outside Israel / EEA</h2>
 <p>Information may be stored or processed in other countries (e.g., EU, USA). Transfers will be made in accordance with approved transfer mechanisms (such as SCCs), and in accordance with Amendment 13 requirements.</p>
 
-<h2>7. Cookies and Tracking Technologies</h2>
-<p>The App and website may use Cookies, SDKs, and pixels for:</p>
-<ul>
-  <li><strong>Essential</strong> – Basic operation.</li>
-  <li><strong>Analytics</strong> – Measurement and improvement.</li>
-  <li><strong>Advertising</strong> – Only subject to consent (and in iOS – ATT).</li>
-</ul>
-<p>The User can manage preferences through device and browser settings.</p>
+<h2>7. Analytics</h2>
+<p>Gusha v1.0.2 does not show ads and does not use App Tracking Transparency (ATT). We may use essential and analytics tools to operate and improve the service. We do not sell your personal information or use it for targeted advertising.</p>
 
 <h2>8. Minors</h2>
 <p>The Service is intended for ages 18+ only. We do not knowingly collect information about minors. If we become aware of a minor's account – the account will be deleted, and the information will be deleted as far as possible.</p>

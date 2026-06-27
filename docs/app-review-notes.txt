@@ -1,4 +1,4 @@
-Gusha v1.0.2 (build 10018) — App Review Notes
+Gusha v1.0.2 (build 10019) — App Review Notes
 ================================================
 
 IMPORTANT — HOW TO TEST (required path):
@@ -48,6 +48,8 @@ Used only so users can add profile photos and send images in chat (e.g. choose a
 
 CONTACT & LEGAL (TGBC):
 Support / Privacy: office@tgbc.co.il
-Privacy Policy (App Store URL): https://www.tgbc.co.il/blank
-Terms of Service: in-app Settings → Legal → Terms of Service
+Privacy Policy (App Store URL): https://gusha-api.onrender.com/privacy
+Terms of Service (web): https://gusha-api.onrender.com/terms
+Terms / Community Guidelines (in-app): Settings → Legal
+Delete account (web): https://gusha-api.onrender.com/delete-account
 Company: TGBC, Reg. 028871614, Tel Aviv, Israel

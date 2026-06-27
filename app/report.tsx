@@ -44,16 +44,20 @@ export default function ReportScreen() {
   const handleSubmit = async () => {
     if (!selectedReason) return;
     const numId = parseInt(userId || "0", 10);
-    if (isAuthenticated && numId > 0) {
-      try {
-        await reportMutation.mutateAsync({
-          reportedUserId: numId,
-          reason: selectedReason as "spam" | "harassment" | "fake_profile" | "inappropriate_content" | "other",
-          description: description || undefined,
-        });
-      } catch (e) {
-        console.warn("[Report] Submit failed:", e);
-      }
+    if (!isAuthenticated || numId <= 0) {
+      Alert.alert("Unable to Report", "Please try again from the user's profile.");
+      return;
+    }
+    try {
+      await reportMutation.mutateAsync({
+        reportedUserId: numId,
+        reason: selectedReason as "spam" | "harassment" | "fake_profile" | "inappropriate_content" | "other",
+        description: description || undefined,
+      });
+    } catch (e) {
+      console.warn("[Report] Submit failed:", e);
+      Alert.alert("Could Not Send Report", "Please check your connection and try again.");
+      return;
     }
     if (Platform.OS !== "web") {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
