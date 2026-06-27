@@ -32,7 +32,7 @@ IN-APP PURCHASES (Guideline 3.1.1):
 
 ACCOUNT DELETION (Guideline 5.1.1(v)):
 Profile tab → Settings (gear icon) → Delete Account → type DELETE to confirm
-Web: https://gusha-api.onrender.com/delete-account
+Alternative: email office@tgbc.co.il
 
 BLOCK / REPORT / SAFETY (Guideline 1.2):
 - Block or Report from any user profile
@@ -46,7 +46,8 @@ GAMES:
 PHOTO LIBRARY (Guideline 5.1.1):
 Used only so users can add profile photos and send images in chat (e.g. choose a gallery photo as profile picture).
 
-Support: support@gusha.app
-Privacy: privacy@gusha.app
-Privacy Policy: https://gusha-api.onrender.com/privacy
-Terms: https://gusha-api.onrender.com/terms
+CONTACT & LEGAL (TGBC):
+Support / Privacy: office@tgbc.co.il
+Privacy Policy (App Store URL): https://www.tgbc.co.il/blank
+Terms of Service: in-app Settings → Legal → Terms of Service
+Company: TGBC, Reg. 028871614, Tel Aviv, Israel

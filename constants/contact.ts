@@ -1,1 +1,7 @@
-export { PRIVACY_EMAIL, SAFETY_EMAIL, SUPPORT_EMAIL } from "@shared/const";
+export {
+  LEGAL_PRIVACY_URL,
+  LEGAL_TERMS_URL,
+  PRIVACY_EMAIL,
+  SAFETY_EMAIL,
+  SUPPORT_EMAIL,
+} from "@shared/const";

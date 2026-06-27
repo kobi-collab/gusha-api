@@ -62,8 +62,8 @@ async function run() {
     const pass =
       res.ok &&
       html.includes("Gusha") &&
-      html.includes("privacy@gusha.app") &&
-      !html.includes("office@tgbc.co.il");
+      html.includes("office@tgbc.co.il") &&
+      !html.includes("privacy@gusha.app");
     checks.push({
       name: "Privacy policy (/privacy)",
       pass,
