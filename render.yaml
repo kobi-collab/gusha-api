@@ -4,7 +4,7 @@ services:
     runtime: node
     plan: free
     region: virginia
-    buildCommand: corepack enable && pnpm install --frozen-lockfile
+    buildCommand: npm install -g pnpm@10 && pnpm install --frozen-lockfile
     startCommand: pnpm exec tsx server/_core/index.ts
     healthCheckPath: /api/health
     envVars:
