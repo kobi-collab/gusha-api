@@ -12,3 +12,5 @@ export const SAFETY_EMAIL = "office@tgbc.co.il";
 /** Canonical public legal URLs (production API — use in App Store Connect). */
 export const LEGAL_PRIVACY_URL = "https://gusha-api.onrender.com/privacy";
 export const LEGAL_TERMS_URL = "https://gusha-api.onrender.com/terms";
+export const LEGAL_SUPPORT_URL = "https://gusha-api.onrender.com/support";
+export const LEGAL_DELETE_ACCOUNT_URL = "https://gusha-api.onrender.com/delete-account";

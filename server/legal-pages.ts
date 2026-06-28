@@ -43,7 +43,6 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>"The Company" – TGBC., Company Registration Number 028871614, which owns and manages the App.</p>
 <p>"User" – Any person who has registered for the service and created a user account in the App, or makes any use of the App.</p>
 <p>"User Content" – Any information, data, or material of any kind uploaded or provided in the course of using the Service, including texts, photos, links, comments, messages, Taps, profile information, etc.</p>
-<p>"Subscription" – Optional paid plans that may be offered in the future to unlock additional features. Gusha is currently free to use; no paid subscriptions are sold in the app at this time.</p>
 
 <h3>Acceptance</h3>
 <p>The use of the App, including downloading, installing, creating an account, logging in, browsing the Grid, sending messages, or any other use, constitutes the User's full and unconditional agreement to these Terms of Use, the Privacy Policy, and the Community Guidelines, as they may be updated from time to time.</p>
@@ -78,10 +77,8 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>All rights to the App itself (the name "Gusha", logo, design, code, databases) belong exclusively to the Company.</p>
 <p>Copyright Policy (DMCA): The Company respects intellectual property rights. If you believe that content on the App infringes your copyright, please contact our Copyright Agent at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
 
-<h2>8. Subscriptions and Payments</h2>
-<p>Gusha is currently offered at no charge. All core features are available without payment.</p>
-<p>The Company may introduce optional paid plans in a future version. If and when paid plans become available, they will be processed through Apple In-App Purchases and/or Google Play Billing, will renew automatically until canceled in your store account settings, and the Company cannot cancel a subscription on your behalf.</p>
-<p>Refunds are handled according to Apple and Google policies.</p>
+<h2>8. Pricing</h2>
+<p>Gusha v1.0.2 is offered at no charge. All features are available without payment. There are no in-app purchases or subscriptions in this version.</p>
 
 <h2>9. Limitation of Liability</h2>
 <p>The Service is provided "AS IS" without warranties of any kind.</p>
@@ -98,7 +95,7 @@ const TERMS_HTML = wrapHtml("Terms of Service", "March 26, 2026", `
 <p>US Users: Any dispute, claim, or controversy arising out of or relating to these Services shall be resolved exclusively by binding, individual arbitration. The User and the Company hereby waive the right to a jury trial and the right to participate in any class action lawsuit.</p>
 
 <h2>12. General Provisions</h2>
-<p>The Terms, together with the Privacy Policy, Community Guidelines, and Subscription Terms, constitute the entire agreement between you and the Company.</p>
+<p>The Terms, together with the Privacy Policy and Community Guidelines, constitute the entire agreement between you and the Company.</p>
 <p>If any provision is found to be unenforceable, the remaining provisions will remain in effect.</p>
 <p>The Hebrew version of these Terms is the binding version. Translations are provided for convenience only.</p>
 
@@ -116,7 +113,7 @@ const PRIVACY_HTML = wrapHtml("Privacy Policy", "March 26, 2026", `
 <p><strong>Location Information:</strong> Approximate location, collected only when you manually check in to the Radar and grant location permission. You can check out at any time.</p>
 <p><strong>Usage Information:</strong> Login times, profile views, messages, favorites, and in-app actions needed to operate the service.</p>
 <p><strong>Device Information:</strong> IP address, device type, operating system, and crash reports.</p>
-<p><strong>Payment Information:</strong> Not collected in the current free version of Gusha. If paid plans are introduced in a future version, purchases will be processed by Apple or Google; we will not receive your full payment card details.</p>
+<p><strong>Payments:</strong> Gusha v1.0.2 is free. We do not collect payment or purchase information in this version.</p>
 <p><strong>Purposes:</strong> Profile creation, service operation, matching, security, improving user experience, fraud prevention, legal compliance.</p>
 <p><strong>Legal Basis for Processing (EU/UK Users):</strong> We process your data based on: (a) Performance of a contract with you; (b) Explicit consent (regarding sexual orientation and precise location when you check in to Radar); (c) Legitimate interest (for platform security, fraud prevention, and service improvement); (d) Legal obligation.</p>
 
@@ -193,7 +190,6 @@ const DELETE_ACCOUNT_HTML = wrapHtml("Delete Your Account", "March 26, 2026", `
   <li>Your profile information (name, photos, bio, preferences)</li>
   <li>All messages and conversations</li>
   <li>Taps, favorites, and profile views</li>
-  <li>Subscription information</li>
   <li>Push notification tokens</li>
   <li>Block and report history</li>
 </ul>
@@ -206,6 +202,30 @@ const DELETE_ACCOUNT_HTML = wrapHtml("Delete Your Account", "March 26, 2026", `
 
 <h2>Questions?</h2>
 <p>For any questions about data deletion, please contact us at <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a>.</p>
+`);
+
+// ── Support Page ──
+
+const SUPPORT_HTML = wrapHtml("Support", "June 28, 2026", `
+<h2>Contact Gusha Support</h2>
+<p>Gusha v1.0.2 is a free social community app for adults 18+. For help with the app, account issues, safety concerns, or privacy requests, contact us:</p>
+<p><strong>Email:</strong> <a href="mailto:${SUPPORT_EMAIL}">${SUPPORT_EMAIL}</a></p>
+<p>We aim to respond within 2 business days.</p>
+
+<h2>Common Topics</h2>
+<ul>
+  <li><strong>Account deletion</strong> — Profile → Settings → Delete Account, or see our <a href="/delete-account">account deletion guide</a>.</li>
+  <li><strong>Privacy</strong> — Read our <a href="/privacy">Privacy Policy</a>.</li>
+  <li><strong>Terms</strong> — Read our <a href="/terms">Terms of Service</a>.</li>
+  <li><strong>Block or report</strong> — Open any user profile in the app and tap Block or Report.</li>
+  <li><strong>Radar / location</strong> — You are hidden by default. Tap Check In on the Radar tab and accept the consent dialog to appear on the map. Tap Check Out anytime.</li>
+</ul>
+
+<h2>App Review</h2>
+<p>This app has no in-app purchases in v1.0.2. Tap <strong>Get Started</strong> on the welcome screen to create a guest account — no Apple ID or password is required.</p>
+
+<h2>Company</h2>
+<p>TGBC. | Company Registration No.: 028871614 | Parlok 17 Tel Aviv, Israel</p>
 `);
 
 // ── Register Routes ──
@@ -232,5 +252,12 @@ export function registerLegalRoutes(app: Express) {
   });
   app.get("/api/delete-account", (_req: Request, res: Response) => {
     res.type("html").send(DELETE_ACCOUNT_HTML);
+  });
+
+  app.get("/support", (_req: Request, res: Response) => {
+    res.type("html").send(SUPPORT_HTML);
+  });
+  app.get("/api/support", (_req: Request, res: Response) => {
+    res.type("html").send(SUPPORT_HTML);
   });
 }

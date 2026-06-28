@@ -93,13 +93,33 @@ async function run() {
   // 5. Delete account page
   try {
     const res = await fetch(`${baseUrl}/delete-account`);
+    const html = await res.text();
+    const pass = res.ok && !html.includes("Subscription information");
     checks.push({
       name: "Delete account page",
-      pass: res.ok,
-      detail: `status ${res.status}`,
+      pass,
+      detail: pass ? "status 200, no subscription text" : `status ${res.status}`,
     });
   } catch (e) {
     checks.push({ name: "Delete account page", pass: false, detail: String(e) });
+  }
+
+  // 6. Support page (App Store Support URL)
+  try {
+    const res = await fetch(`${baseUrl}/support`);
+    const html = await res.text();
+    const pass =
+      res.ok &&
+      html.includes("Support") &&
+      html.includes("office@tgbc.co.il") &&
+      html.includes("no in-app purchases");
+    checks.push({
+      name: "Support page (/support)",
+      pass,
+      detail: pass ? "support contact + review hints" : `status ${res.status}`,
+    });
+  } catch (e) {
+    checks.push({ name: "Support page (/support)", pass: false, detail: String(e) });
   }
 
   let failed = 0;

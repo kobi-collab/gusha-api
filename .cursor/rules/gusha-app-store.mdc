@@ -1,0 +1,41 @@
+---
+description: Gusha App Store Connect and production release context
+alwaysApply: true
+---
+
+# Gusha — App Store & Production
+
+## Current release
+- App: **Gusha** (Apple ID `6760810869`)
+- Version **1.0.2**, iOS build **10019**
+- Bundle ID: `space.manus.lesbian.radar.app.t20260316144952`
+- Production API: `https://gusha-api.onrender.com` (**paid Render plan — no cold start**)
+
+## Canonical ASC URLs (never use tgbc.co.il or gusha.app emails)
+| Use | URL |
+|-----|-----|
+| Privacy Policy | `https://gusha-api.onrender.com/privacy` |
+| Support | `https://gusha-api.onrender.com/support` |
+| Terms | `https://gusha-api.onrender.com/terms` |
+| Delete account | `https://gusha-api.onrender.com/delete-account` |
+| Contact email | `office@tgbc.co.il` |
+
+## App Privacy (nutrition labels)
+- **6 data types** — no Purchase History / Purchases
+- Published via App Store Connect App Privacy
+
+## Apple review path
+1. **Get Started** only (no Demo button in production)
+2. Guest session after onboarding — no sign-in required
+3. Radar: opt-in Check In + consent dialog
+4. **No IAP** in v1.0.2 — all features free
+
+## Before changing anything during review
+- Do **not** deploy to Render unless fixing a blocker
+- Do **not** change ASC metadata without user request
+- Run `node scripts/verify-production.mjs` after server changes
+
+## Past rejection themes (fixed)
+- 5.1.2 location/radar consent
+- 2.1(b) IAP mismatch
+- 5.1.1 privacy/support URLs and emails
