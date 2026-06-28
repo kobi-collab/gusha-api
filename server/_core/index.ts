@@ -4,6 +4,7 @@ import { createServer } from "http";
 import net from "net";
 import { createExpressMiddleware } from "@trpc/server/adapters/express";
 import { registerOAuthRoutes } from "./oauth";
+import { registerAscScreenshotRoutes } from "../asc-screenshots";
 import { registerLegalRoutes } from "../legal-pages";
 import { appRouter } from "../routers";
 import { createContext } from "./context";
@@ -57,6 +58,7 @@ async function startServer() {
 
   registerOAuthRoutes(app);
   registerLegalRoutes(app);
+  registerAscScreenshotRoutes(app);
 
   app.get("/api/health", async (_req, res) => {
     let database = "unknown";
